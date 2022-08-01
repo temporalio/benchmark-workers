@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/prometheus/client_golang v1.12.2
-	github.com/uber-go/tally v3.5.0+incompatible
 	github.com/uber-go/tally/v4 v4.1.2
 	go.temporal.io/sdk v1.15.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
@@ -22,9 +21,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
-	github.com/m3db/prometheus_client_golang v1.12.8 // indirect
-	github.com/m3db/prometheus_client_model v0.2.1 // indirect
-	github.com/m3db/prometheus_common v0.34.6 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
