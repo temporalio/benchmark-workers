@@ -29,3 +29,7 @@ func SleepActivity(ctx context.Context, sleepTimeInSeconds int) error {
 		}
 	}
 }
+
+func EchoActivity(ctx context.Context, input string) (string, error) {
+	return input, nil
+}

@@ -63,8 +63,14 @@ This workflow takes a count, an activity name and a variable number of inputs. T
 
 The worker provides the following activities for you to use during benchmarking:
 
-### SleepActivity
+### Sleep
 
 `Sleep(seconds)`
 
 This activity sleeps for the given number of seconds. It never returns an error. This can be used to simulate activities which take a while to complete.
+
+### Echo
+
+`Echo(input) result`
+
+This activity simply returns it's input as it's result. This can be used for stress testing polling with activities that return instantly.
