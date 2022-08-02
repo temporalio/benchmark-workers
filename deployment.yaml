@@ -20,13 +20,13 @@ spec:
         name: benchmark-workers
         env:
         - name: TEMPORAL_GRPC_ENDPOINT
-          value: temporal-frontend.temporal:7233
+          value: "temporal-frontend.temporal:7233"
         - name: TEMPORAL_NAMESPACE
-          value: default
+          value: "default"
         - name: TEMPORAL_TASK_QUEUE
-          value: benchmark
+          value: "benchmark"
         - name: TEMPORAL_WORKFLOW_TASK_POLLERS
-          value: 16
+          value: "16"
         - name: TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS
-          value: 8
+          value: "8"
       restartPolicy: Always
