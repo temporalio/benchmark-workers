@@ -7,7 +7,7 @@ import (
 	"go.temporal.io/sdk/activity"
 )
 
-func SleepActivity(ctx context.Context, input string, sleepTimeInSeconds int) (string, error) {
+func SleepActivity(ctx context.Context, sleepTimeInSeconds int) error {
 	sleepTimer := time.After(time.Duration(sleepTimeInSeconds) * time.Second)
 	heartbeatTimeout := activity.GetInfo(ctx).HeartbeatTimeout
 	if heartbeatTimeout == 0 {
@@ -21,9 +21,9 @@ func SleepActivity(ctx context.Context, input string, sleepTimeInSeconds int) (s
 	for {
 		select {
 		case <-sleepTimer:
-			return input, nil
+			return nil
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return ctx.Err()
 		case <-t.C:
 			activity.RecordHeartbeat(ctx)
 		}

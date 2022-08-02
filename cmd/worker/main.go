@@ -10,8 +10,10 @@ import (
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 func main() {
@@ -56,8 +58,8 @@ func main() {
 
 	w := worker.New(c, os.Getenv("TEMPORAL_TASK_QUEUE"), workerOptions)
 
-	w.RegisterWorkflow(workflows.SerialWorkflow)
-	w.RegisterActivity(activities.SleepActivity)
+	w.RegisterWorkflowWithOptions(workflows.ExecuteActivityWorkflow, workflow.RegisterOptions{Name: "ExecuteActivity"})
+	w.RegisterActivityWithOptions(activities.SleepActivity, activity.RegisterOptions{Name: "Sleep"})
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
