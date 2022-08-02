@@ -44,7 +44,7 @@ Note: If you need more than one worker to test performance at scale you should u
 You can then use the benchmark workflows with your benchmark tool. To test with `tctl` you could run:
 
 ```
-tctl workflow start --taskqueue benchmark --workflow_type ExecuteActivity --execution_timeout 60 1 Sleep 3
+tctl workflow start --taskqueue benchmark --workflow_type ExecuteActivity --execution_timeout 60 '{"Count":1,"Activity":"Sleep","Input":{"SleepTimeInSeconds":3}}'
 ```
 
 This will run the ExecuteActivity workflow, described below.
@@ -55,9 +55,9 @@ The worker provides the following workflows for you to use during benchmarking:
 
 ### ExecuteActivity
 
-`ExecuteActivity(count, activity name, inputs...)`
+`ExecuteActivity({ Count: int, Activity: string, Input: interface{} })`
 
-This workflow takes a count, an activity name and a variable number of inputs. The requested activity will be run `count` times with the given `inputs`. If the activity returns an error the workflow will fail with that error.
+This workflow takes a count, an activity name and an activity input. The activity `Activity` will be run `Count` times with the given `input`. If the activity returns an error the workflow will fail with that error.
 
 ## Activities
 
@@ -65,12 +65,12 @@ The worker provides the following activities for you to use during benchmarking:
 
 ### Sleep
 
-`Sleep(seconds)`
+`Sleep({ SleepTimeInSeconds: int })`
 
 This activity sleeps for the given number of seconds. It never returns an error. This can be used to simulate activities which take a while to complete.
 
 ### Echo
 
-`Echo(input) result`
+`Echo({ Message: string }) result`
 
-This activity simply returns it's input as it's result. This can be used for stress testing polling with activities that return instantly.
+This activity simply returns the message as it's result. This can be used for stress testing polling with activities that return instantly.
