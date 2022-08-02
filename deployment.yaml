@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: benchmark-workers
+  name: benchmark-workers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benchmark-workers
+  template:
+    metadata:
+      labels:
+        app: benchmark-workers
+    spec:
+      containers:
+      - image: ghcr.io/temporalio/benchmark-workers:main
+        imagePullPolicy: Always
+        name: benchmark-workers
+        env:
+        - name: TEMPORAL_GRPC_ENDPOINT
+          value: temporal-frontend.temporal:7233
+        - name: TEMPORAL_NAMESPACE
+          value: default
+        - name: TEMPORAL_TASK_QUEUE
+          value: benchmark
+        - name: TEMPORAL_WORKFLOW_TASK_POLLERS
+          value: 16
+        - name: TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS
+          value: 8
+      restartPolicy: Always

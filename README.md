@@ -27,6 +27,28 @@ The table below lists the environment variables available and the relevant Tempo
 | TEMPORAL_ACTIVITY_TASK_POLLERS | [WorkerOptions.MaxConcurrentActivityTaskPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#WorkerOptions) | Number of activity task pollers |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
 
+To run the worker in a Kubernetes cluster you could use:
+
+```
+kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
+    --image-pull-policy Always \
+    --env "TEMPORAL_GRPC_ENDPOINT=temporal-frontend.temporal:7233" \
+    --env "TEMPORAL_NAMESPACE=default" \
+    --env "TEMPORAL_TASK_QUEUE=benchmark" \
+    --env "TEMPORAL_WORKFLOW_TASK_POLLERS=16" \
+    --env "TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS=8"
+```
+
+Note: If you need more than one worker to test performance at scale you should use a Kubernetes deployment instead of using `kubectl run` which creates only one pod. We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
+
+You can then use the benchmark workflows with your benchmark tool. To test with `tctl` you could run:
+
+```
+tctl workflow start --taskqueue benchmark --workflow_type ExecuteActivity --execution_timeout 60 1 Sleep 3
+```
+
+This will run the ExecuteActivity workflow, described below.
+
 ## Workflows
 
 The worker provides the following workflows for you to use during benchmarking:
