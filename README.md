@@ -44,7 +44,7 @@ Note: If you need more than one worker to test performance at scale you should u
 You can then use the benchmark workflows with your benchmark tool. To test with `tctl` you could run:
 
 ```
-tctl workflow start --taskqueue benchmark --workflow_type ExecuteActivity --execution_timeout 60 '{"Count":1,"Activity":"Sleep","Input":{"SleepTimeInSeconds":3}}'
+tctl workflow start --taskqueue benchmark --workflow_type ExecuteActivity --execution_timeout 60 -i '{"Count":1,"Activity":"Sleep","Input":{"SleepTimeInSeconds":3}}'
 ```
 
 This will run the ExecuteActivity workflow, described below.
