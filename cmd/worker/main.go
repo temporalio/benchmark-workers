@@ -38,18 +38,18 @@ func main() {
 
 	workerOptions := worker.Options{}
 
-	if os.Getenv("TEMPORAL_MAX_CONCURRENT_WORKFLOW_TASK_POLLERS") != "" {
-		i, err := strconv.Atoi(os.Getenv("TEMPORAL_MAX_CONCURRENT_WORKFLOW_TASK_POLLERS"))
+	if os.Getenv("TEMPORAL_WORKFLOW_TASK_POLLERS") != "" {
+		i, err := strconv.Atoi(os.Getenv("TEMPORAL_WORKFLOW_TASK_POLLERS"))
 		if err != nil {
-			log.Fatalf("TEMPORAL_MAX_CONCURRENT_WORKFLOW_TASK_POLLERS is invalid: %v", err)
+			log.Fatalf("TEMPORAL_WORKFLOW_TASK_POLLERS is invalid: %v", err)
 		}
 		workerOptions.MaxConcurrentWorkflowTaskPollers = i
 	}
 
-	if os.Getenv("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_POLLERS") != "" {
-		i, err := strconv.Atoi(os.Getenv("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_POLLERS"))
+	if os.Getenv("TEMPORAL_ACTIVITY_TASK_POLLERS") != "" {
+		i, err := strconv.Atoi(os.Getenv("TEMPORAL_ACTIVITY_TASK_POLLERS"))
 		if err != nil {
-			log.Fatalf("TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_POLLERS is invalid: %v", err)
+			log.Fatalf("TEMPORAL_ACTIVITY_TASK_POLLERS is invalid: %v", err)
 		}
 		workerOptions.MaxConcurrentActivityTaskPollers = i
 	}
