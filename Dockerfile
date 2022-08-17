@@ -1,4 +1,4 @@
-FROM golang:1.18
+FROM golang:1.18 AS builder
 
 WORKDIR /usr/src/worker
 
@@ -8,4 +8,8 @@ RUN go mod download && go mod verify
 COPY . .
 RUN go build -v -o /usr/local/bin/worker ./cmd/worker
 
-CMD ["worker"]
+FROM scratch
+
+COPY --from=builder /usr/local/bin/worker /usr/local/bin/worker
+
+CMD ["/usr/local/bin/worker"]
