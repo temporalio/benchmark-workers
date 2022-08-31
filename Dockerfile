@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -v -o /usr/local/bin/worker ./cmd/worker
+RUN CGO_ENABLED=0 go build -v -o /usr/local/bin/worker ./cmd/worker
 
 FROM scratch
 
