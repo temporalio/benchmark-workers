@@ -7,6 +7,7 @@ import (
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/uber-go/tally/v4"
 	"github.com/uber-go/tally/v4/prometheus"
+	sdktally "go.temporal.io/sdk/contrib/tally"
 )
 
 func newPrometheusScope(c prometheus.Configuration) tally.Scope {
@@ -24,7 +25,7 @@ func newPrometheusScope(c prometheus.Configuration) tally.Scope {
 	scopeOpts := tally.ScopeOptions{
 		CachedReporter:  reporter,
 		Separator:       prometheus.DefaultSeparator,
-		SanitizeOptions: &sanitizeOptions,
+		SanitizeOptions: &sdktally.PrometheusSanitizeOptions,
 	}
 	scope, _ := tally.NewRootScope(scopeOpts, time.Second)
 

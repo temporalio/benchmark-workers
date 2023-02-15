@@ -5,8 +5,8 @@ go 1.18
 require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/uber-go/tally/v4 v4.1.2
-	go.temporal.io/sdk v1.17.0
-	go.temporal.io/sdk/contrib/tally v0.1.0
+	go.temporal.io/sdk v1.21.1
+	go.temporal.io/sdk/contrib/tally v0.2.0
 )
 
 require (
@@ -29,17 +29,17 @@ require (
 	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/twmb/murmur3 v1.1.5 // indirect
-	go.temporal.io/api v1.11.1-0.20220907050538-6de5285cf463 // indirect
+	go.temporal.io/api v1.16.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect
-	golang.org/x/sys v0.0.0-20220906165534-d0df966e6959 // indirect
-	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	google.golang.org/genproto v0.0.0-20220902135211-223410557253 // indirect
-	google.golang.org/grpc v1.49.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/time v0.1.0 // indirect
+	google.golang.org/genproto v0.0.0-20230127162408-596548ed4efa // indirect
+	google.golang.org/grpc v1.52.3 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
