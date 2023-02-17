@@ -1,8 +1,9 @@
-module github.com/robholland/benchmark-workers
+module github.com/temporalio/benchmark-workers
 
 go 1.18
 
 require (
+	github.com/alitto/pond v1.8.3
 	github.com/prometheus/client_golang v1.12.2
 	github.com/uber-go/tally/v4 v4.1.2
 	go.temporal.io/sdk v1.21.1

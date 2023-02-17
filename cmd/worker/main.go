@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/robholland/benchmark-workers/activities"
-	"github.com/robholland/benchmark-workers/workflows"
+	"github.com/temporalio/benchmark-workers/activities"
+	"github.com/temporalio/benchmark-workers/workflows"
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 
