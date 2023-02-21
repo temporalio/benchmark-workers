@@ -17,7 +17,8 @@ import (
 )
 
 var nWorfklows = flag.Int("c", 10, "concurrent workflows")
-var sWorkflow = flag.String("w", "", "workflow type")
+var sWorkflow = flag.String("t", "", "workflow type")
+var bWait = flag.Bool("w", false, "wait for workflows to complete")
 var sWorfklowID = flag.String("id", "benchmark", "workflow ID prefix")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
@@ -72,9 +73,11 @@ func main() {
 					log.Fatalln("Unable to start workflow", err)
 				}
 
-				err = wf.Get(context.Background(), nil)
-				if err != nil {
-					log.Fatalln("Workflow failed", err)
+				if *bWait {
+					err = wf.Get(context.Background(), nil)
+					if err != nil {
+						log.Fatalln("Workflow failed", err)
+					}
 				}
 			})
 		}
@@ -86,7 +89,7 @@ func main() {
 	for {
 		rate := float64(pool.CompletedTasks()-lastCompleted) / time.Since(lastCheck).Seconds()
 
-		fmt.Printf("Workers: %d Workflows: %d Rate: %f\n", pool.RunningWorkers(), pool.CompletedTasks(), rate)
+		fmt.Printf("Concurrent: %d Workflows: %d Rate: %f\n", pool.RunningWorkers(), pool.CompletedTasks(), rate)
 
 		lastCheck = time.Now()
 		lastCompleted = pool.CompletedTasks()
