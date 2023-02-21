@@ -57,11 +57,12 @@ func main() {
 
 	go (func() {
 		for i := 1; ; i++ {
+			j := i
 			pool.Submit(func() {
 				wf, err := c.ExecuteWorkflow(
 					context.Background(),
 					client.StartWorkflowOptions{
-						ID:        fmt.Sprintf("%s-%d", *sWorfklowID, i),
+						ID:        fmt.Sprintf("%s-%d", *sWorfklowID, j),
 						TaskQueue: *sTaskQueue,
 					},
 					*sWorkflow,
