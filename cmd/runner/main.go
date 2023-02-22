@@ -19,7 +19,6 @@ import (
 var nWorfklows = flag.Int("c", 10, "concurrent workflows")
 var sWorkflow = flag.String("t", "", "workflow type")
 var bWait = flag.Bool("w", false, "wait for workflows to complete")
-var sWorfklowID = flag.String("id", "benchmark", "workflow ID prefix")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
 func main() {
@@ -57,13 +56,11 @@ func main() {
 	pool := pond.New(*nWorfklows, 0)
 
 	go (func() {
-		for i := 1; ; i++ {
-			j := i
+		for {
 			pool.Submit(func() {
 				wf, err := c.ExecuteWorkflow(
 					context.Background(),
 					client.StartWorkflowOptions{
-						ID:        fmt.Sprintf("%s-%d", *sWorfklowID, j),
 						TaskQueue: *sTaskQueue,
 					},
 					*sWorkflow,
