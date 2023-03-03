@@ -67,13 +67,15 @@ func main() {
 					input...,
 				)
 				if err != nil {
-					log.Fatalln("Unable to start workflow", err)
+					log.Println("Unable to start workflow", err)
+					return
 				}
 
 				if *bWait {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
-						log.Fatalln("Workflow failed", err)
+						log.Println("Workflow failed", err)
+						return
 					}
 				}
 			})
