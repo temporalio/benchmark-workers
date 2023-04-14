@@ -19,7 +19,7 @@ import (
 var nWorfklows = flag.Int("c", 10, "concurrent workflows")
 var sWorkflow = flag.String("t", "", "workflow type")
 var bWait = flag.Bool("w", false, "wait for workflows to complete")
-var sNamespace = flag.String("n", "namespace", "default")
+var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
 func main() {
@@ -29,9 +29,6 @@ func main() {
 		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
 		Namespace: *sNamespace,
 		Logger:    NewNopLogger(),
-	}
-	if clientOptions.Namespace == "" {
-		clientOptions.Namespace = "default"
 	}
 
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
