@@ -22,6 +22,9 @@ func main() {
 		Namespace: os.Getenv("TEMPORAL_NAMESPACE"),
 		// TODO: Support TLS.
 	}
+	if clientOptions.Namespace == "" {
+		clientOptions.Namespace = "default"
+	}
 
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
 		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
@@ -56,7 +59,11 @@ func main() {
 
 	// TODO: Support more worker options
 
-	w := worker.New(c, os.Getenv("TEMPORAL_TASK_QUEUE"), workerOptions)
+	taskQueue := os.Getenv("TEMPORAL_TASK_QUEUE")
+	if taskQueue == "" {
+		taskQueue = "benchmark"
+	}
+	w := worker.New(c, taskQueue, workerOptions)
 
 	w.RegisterWorkflowWithOptions(workflows.ExecuteActivityWorkflow, workflow.RegisterOptions{Name: "ExecuteActivity"})
 	w.RegisterActivityWithOptions(activities.SleepActivity, activity.RegisterOptions{Name: "Sleep"})
