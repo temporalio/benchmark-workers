@@ -2,17 +2,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: benchmark-workers
+    app: benchmark
+    component: workers
   name: benchmark-workers
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: benchmark-workers
+      app: benchmark
+      component: workers
   template:
     metadata:
       labels:
-        app: benchmark-workers
+        app: benchmark
+        component: workers
     spec:
       containers:
       - image: ghcr.io/temporalio/benchmark-workers:main
@@ -29,4 +32,39 @@ spec:
           value: "16"
         - name: TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS
           value: "8"
+      restartPolicy: Always
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: benchmark
+    component: soak-test
+  name: benchmark-soak-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benchmark-workers
+      component: soak-test
+  template:
+    metadata:
+      labels:
+        app: benchmark-workers
+        component: soak-test
+    spec:
+      containers:
+      - image: ghcr.io/temporalio/benchmark-workers:main
+        imagePullPolicy: Always
+        name: benchmark-soak-test
+        env:
+        - name: TEMPORAL_GRPC_ENDPOINT
+          value: "temporal-frontend.temporal:7233"
+        - name: TEMPORAL_NAMESPACE
+          value: "default"
+        - name: TEMPORAL_TASK_QUEUE
+          value: "benchmark"
+        - name: CONCURRENT_WORKFLOWS
+          value: "10"
+        command: ["runner", "-w", "-c", "$(CONCURRENT_WORKFLOWS)", "-t", "ExecuteActivity", '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }']
       restartPolicy: Always
