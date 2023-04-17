@@ -45,12 +45,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: benchmark-workers
+      app: benchmark
       component: soak-test
   template:
     metadata:
       labels:
-        app: benchmark-workers
+        app: benchmark
         component: soak-test
     spec:
       containers:
