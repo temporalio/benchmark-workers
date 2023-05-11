@@ -19,11 +19,16 @@ import (
 
 var nWorfklows = flag.Int("c", 10, "concurrent workflows")
 var sWorkflow = flag.String("t", "", "workflow type")
-var bWait = flag.Bool("w", false, "wait for workflows to complete")
+var bWait = flag.Bool("w", true, "wait for workflows to complete")
 var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] [workflow input] ...\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	clientOptions := client.Options{
