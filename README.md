@@ -23,8 +23,8 @@ The table below lists the environment variables available and the relevant Tempo
 | Environment Variable | Relevant Client or Worker option | Description |
 | --- | --- | --- |
 | TEMPORAL_GRPC_ENDPOINT | [ClientOptions.HostPort](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ClientOptions) | The Temporal Frontend GRPC endpoint |
-| TEMPORAL_TLS_KEY | [ClientOptions.ConnectionOptions.TLS.Certificates] | Path to TLS Key file |
-| TEMPORAL_TLS_CERT | [ClientOptions.ConnectionOptions.TLS.Certificates] | Path to TLS Cert file |
+| TEMPORAL_TLS_KEY | [ClientOptions.ConnectionOptions.TLS](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS Key file |
+| TEMPORAL_TLS_CERT | [ClientOptions.ConnectionOptions.TLS](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS Cert file |
 | TEMPORAL_NAMESPACE | [ClientOptions.Namespace](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ClientOptions) | The Temporal Namespace |
 | TEMPORAL_TASK_QUEUE | [TaskQueue](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/worker#New) | The Temporal Task Queue |
 | TEMPORAL_WORKFLOW_TASK_POLLERS | [WorkerOptions.MaxConcurrentWorkflowTaskPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#WorkerOptions) | Number of workflow task pollers |
@@ -66,8 +66,8 @@ The table below lists the environment variables available and the relevant Tempo
 | Environment Variable | Relevant Client or Worker option | Description |
 | --- | --- | --- |
 | TEMPORAL_GRPC_ENDPOINT | [ClientOptions.HostPort](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ClientOptions) | The Temporal Frontend GRPC endpoint |
-| TEMPORAL_TLS_KEY | [ClientOptions.ConnectionOptions.TLS.Certificates] | Path to TLS Key file |
-| TEMPORAL_TLS_CERT | [ClientOptions.ConnectionOptions.TLS.Certificates] | Path to TLS Cert file |
+| TEMPORAL_TLS_KEY | [ClientOptions.ConnectionOptions.TLS.Certificates](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS Key file |
+| TEMPORAL_TLS_CERT | [ClientOptions.ConnectionOptions.TLS.Certificates](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS Cert file |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
 
 The runner is also configured via command line options:
