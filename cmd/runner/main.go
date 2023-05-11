@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -29,6 +30,20 @@ func main() {
 		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
 		Namespace: *sNamespace,
 		Logger:    NewNopLogger(),
+	}
+
+	tlsKeyPath := os.Getenv("TEMPORAL_TLS_KEY")
+	tlsCertPath := os.Getenv("TEMPORAL_TLS_CERT")
+
+	if tlsKeyPath != "" && tlsCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
+		if err != nil {
+			log.Fatalln("Unable to create key pair for TLS", err)
+		}
+
+		clientOptions.ConnectionOptions.TLS = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
 	}
 
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
