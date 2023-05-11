@@ -43,7 +43,7 @@ kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
     --env "TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS=8"
 ```
 
-Note: If you need more than one worker to test performance at scale you should use a Kubernetes deployment instead of using `kubectl run` which creates only one pod. We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
+However, we suggest you use a deployment for workers rather than `kubectl run` so that you can collect metrics via prometheus. We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
 
 You can then use the benchmark workflows with your benchmark tool. To test with `tctl` you could run:
 
@@ -91,7 +91,7 @@ To use the runner in a Kubernetes cluster you could use:
 kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
     --image-pull-policy Always \
     --env "TEMPORAL_GRPC_ENDPOINT=temporal-frontend.temporal:7233" \
-    --command runner -t ExecuteActivity '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
+    --command -- runner -t ExecuteActivity '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
 ```
 
 ## Workflows
