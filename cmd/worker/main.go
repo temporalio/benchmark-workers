@@ -10,6 +10,7 @@ import (
 	"github.com/temporalio/benchmark-workers/workflows"
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
@@ -18,6 +19,10 @@ import (
 )
 
 func main() {
+	if _, err := maxprocs.Set(); err != nil {
+		log.Printf("WARNING: failed to set GOMAXPROCS: %v.\n", err)
+	}
+
 	clientOptions := client.Options{
 		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
 		Namespace: os.Getenv("TEMPORAL_NAMESPACE"),
