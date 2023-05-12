@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -44,6 +45,7 @@ func main() {
 
 	tlsKeyPath := os.Getenv("TEMPORAL_TLS_KEY")
 	tlsCertPath := os.Getenv("TEMPORAL_TLS_CERT")
+	tlsCaPath := os.Getenv("TEMPORAL_TLS_CA")
 
 	if tlsKeyPath != "" && tlsCertPath != "" {
 		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
@@ -51,8 +53,20 @@ func main() {
 			log.Fatalln("Unable to create key pair for TLS", err)
 		}
 
+		var tlsCaPool *x509.CertPool
+		if tlsCaPath != "" {
+			tlsCaPool = x509.NewCertPool()
+			b, err := os.ReadFile(tlsCaPath)
+			if err != nil {
+				log.Fatalln("Failed reading server CA: %w", err)
+			} else if !tlsCaPool.AppendCertsFromPEM(b) {
+				log.Fatalln("Server CA PEM file invalid")
+			}
+		}
+
 		clientOptions.ConnectionOptions.TLS = &tls.Config{
 			Certificates: []tls.Certificate{cert},
+			RootCAs:      tlsCaPool,
 		}
 	}
 
