@@ -36,9 +36,9 @@ require (
 	github.com/twmb/murmur3 v1.1.6 // indirect
 	go.temporal.io/api v1.18.2-0.20230324225508-f2c7ab685b44 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20230323212658-478b75c54725 // indirect
 	google.golang.org/grpc v1.54.0 // indirect
