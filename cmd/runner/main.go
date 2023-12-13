@@ -37,9 +37,15 @@ func main() {
 		log.Printf("WARNING: failed to set GOMAXPROCS: %v.\n", err)
 	}
 
+	namespace := *sNamespace
+	envNamespace := os.Getenv("TEMPORAL_NAMESPACE")
+	if envNamespace != "" && envNamespace != "default" {
+		namespace = envNamespace
+	}
+
 	clientOptions := client.Options{
 		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
-		Namespace: *sNamespace,
+		Namespace: namespace,
 		Logger:    NewNopLogger(),
 	}
 
