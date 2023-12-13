@@ -46,6 +46,7 @@ func main() {
 	tlsKeyPath := os.Getenv("TEMPORAL_TLS_KEY")
 	tlsCertPath := os.Getenv("TEMPORAL_TLS_CERT")
 	tlsCaPath := os.Getenv("TEMPORAL_TLS_CA")
+	tlsConfig := tls.Config{}
 
 	if tlsKeyPath != "" && tlsCertPath != "" {
 		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
@@ -64,11 +65,15 @@ func main() {
 			}
 		}
 
-		clientOptions.ConnectionOptions.TLS = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			RootCAs:      tlsCaPool,
-		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+		tlsConfig.RootCAs = tlsCaPool
 	}
+
+	if os.Getenv("TEMPORAL_TLS_DISABLE_HOST_VERIFICATION") != "" {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	clientOptions.ConnectionOptions.TLS = &tlsConfig
 
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
 		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
