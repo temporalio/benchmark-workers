@@ -52,9 +52,10 @@ func main() {
 	tlsKeyPath := os.Getenv("TEMPORAL_TLS_KEY")
 	tlsCertPath := os.Getenv("TEMPORAL_TLS_CERT")
 	tlsCaPath := os.Getenv("TEMPORAL_TLS_CA")
-	tlsConfig := tls.Config{}
 
 	if tlsKeyPath != "" && tlsCertPath != "" {
+		tlsConfig := tls.Config{}
+
 		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
 		if err != nil {
 			log.Fatalln("Unable to create key pair for TLS", err)
@@ -73,13 +74,13 @@ func main() {
 
 		tlsConfig.Certificates = []tls.Certificate{cert}
 		tlsConfig.RootCAs = tlsCaPool
-	}
 
-	if os.Getenv("TEMPORAL_TLS_DISABLE_HOST_VERIFICATION") != "" {
-		tlsConfig.InsecureSkipVerify = true
-	}
+		if os.Getenv("TEMPORAL_TLS_DISABLE_HOST_VERIFICATION") != "" {
+			tlsConfig.InsecureSkipVerify = true
+		}
 
-	clientOptions.ConnectionOptions.TLS = &tlsConfig
+		clientOptions.ConnectionOptions.TLS = &tlsConfig
+	}
 
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
 		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
