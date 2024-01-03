@@ -90,7 +90,7 @@ Usage: runner [flags] [workflow input] ...
 To use the runner in a Kubernetes cluster you could use:
 
 ```
-kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
+kubectl run benchmark-runner --image ghcr.io/temporalio/benchmark-workers:main \
     --image-pull-policy Always \
     --env "TEMPORAL_GRPC_ENDPOINT=temporal-frontend.temporal:7233" \
     --command -- runner -t ExecuteActivity '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
