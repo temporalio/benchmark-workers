@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alitto/pond"
+	"github.com/pborman/uuid"
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -21,6 +22,7 @@ import (
 
 var nWorfklows = flag.Int("c", 10, "concurrent workflows")
 var sWorkflow = flag.String("t", "", "workflow type")
+var sSignalType = flag.String("s", "", "signal type")
 var bWait = flag.Bool("w", true, "wait for workflows to complete")
 var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
@@ -107,17 +109,41 @@ func main() {
 
 	pool := pond.New(*nWorfklows, 0)
 
+	var starter func() (client.WorkflowRun, error)
+
+	if *sSignalType != "" {
+		starter = func() (client.WorkflowRun, error) {
+			wID := uuid.New()
+			return c.SignalWithStartWorkflow(
+				context.Background(),
+				wID,
+				*sSignalType,
+				nil,
+				client.StartWorkflowOptions{
+					ID:        wID,
+					TaskQueue: *sTaskQueue,
+				},
+				*sWorkflow,
+				input...,
+			)
+		}
+	} else {
+		starter = func() (client.WorkflowRun, error) {
+			return c.ExecuteWorkflow(
+				context.Background(),
+				client.StartWorkflowOptions{
+					TaskQueue: *sTaskQueue,
+				},
+				*sWorkflow,
+				input...,
+			)
+		}
+	}
+
 	go (func() {
 		for {
 			pool.Submit(func() {
-				wf, err := c.ExecuteWorkflow(
-					context.Background(),
-					client.StartWorkflowOptions{
-						TaskQueue: *sTaskQueue,
-					},
-					*sWorkflow,
-					input...,
-				)
+				wf, err := starter()
 				if err != nil {
 					log.Println("Unable to start workflow", err)
 					return

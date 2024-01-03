@@ -18,7 +18,7 @@ spec:
         component: workers
     spec:
       containers:
-      - image: ghcr.io/temporalio/benchmark-workers:main
+      - image: ghcr.io/temporalio/benchmark-workers:latest
         imagePullPolicy: Always
         name: benchmark-workers
         env:
@@ -54,7 +54,7 @@ spec:
         component: soak-test
     spec:
       containers:
-      - image: ghcr.io/temporalio/benchmark-workers:main
+      - image: ghcr.io/temporalio/benchmark-workers:latest
         imagePullPolicy: Always
         name: benchmark-soak-test
         env:

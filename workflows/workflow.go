@@ -12,6 +12,11 @@ type ExecuteActivityWorkflowInput struct {
 	Input    interface{}
 }
 
+type ReceiveSignalWorkflowInput struct {
+	Count int
+	Name  string
+}
+
 func ExecuteActivityWorkflow(ctx workflow.Context, input ExecuteActivityWorkflowInput) error {
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 1 * time.Minute,
@@ -23,6 +28,18 @@ func ExecuteActivityWorkflow(ctx workflow.Context, input ExecuteActivityWorkflow
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func ReceiveSignalWorkflow(ctx workflow.Context, input ReceiveSignalWorkflowInput) error {
+	ch := workflow.GetSignalChannel(ctx, input.Name)
+
+	for i := 0; i < input.Count; i++ {
+		var data interface{}
+
+		ch.Receive(ctx, &data)
 	}
 
 	return nil
