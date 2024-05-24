@@ -30,7 +30,7 @@ spec:
           value: "benchmark"
         - name: TEMPORAL_WORKFLOW_TASK_POLLERS
           value: "16"
-        - name: TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS
+        - name: TEMPORAL_ACTIVITY_TASK_POLLERS
           value: "8"
       restartPolicy: Always
 ---

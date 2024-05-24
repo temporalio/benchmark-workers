@@ -41,7 +41,7 @@ kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
     --env "TEMPORAL_NAMESPACE=default" \
     --env "TEMPORAL_TASK_QUEUE=benchmark" \
     --env "TEMPORAL_WORKFLOW_TASK_POLLERS=16" \
-    --env "TEMPORAL_WORKFLOW_ACTIVITY_TASK_POLLERS=8"
+    --env "TEMPORAL_ACTIVITY_TASK_POLLERS=8"
 ```
 
 However, we suggest you use a deployment for workers rather than `kubectl run` so that you can collect metrics via prometheus. We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
