@@ -2,7 +2,7 @@ apiVersion: v2
 name: benchmark-workers
 description: A Helm chart for Temporal benchmark workers
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: latest
 maintainers:
   - name: Temporal
