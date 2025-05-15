@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "benchmark-workers.fullname" . }}-workers
+  labels:
+    app: benchmark
+    component: workers
+    {{- include "benchmark-workers.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount.workers }}
+  selector:
+    matchLabels:
+      app: benchmark
+      component: workers
+      {{- include "benchmark-workers.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: benchmark
+        component: workers
+        {{- include "benchmark-workers.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: benchmark-workers
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.metrics.enabled }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        {{- end }}
+        env:
+        - name: TEMPORAL_GRPC_ENDPOINT
+          value: {{ .Values.temporal.grpcEndpoint | quote }}
+        - name: TEMPORAL_NAMESPACE
+          value: {{ .Values.temporal.namespace | quote }}
+        - name: TEMPORAL_TASK_QUEUE
+          value: {{ .Values.temporal.taskQueue | quote }}
+        - name: TEMPORAL_WORKFLOW_TASK_POLLERS
+          value: {{ .Values.temporal.workflowTaskPollers | quote }}
+        - name: TEMPORAL_ACTIVITY_TASK_POLLERS
+          value: {{ .Values.temporal.activityTaskPollers | quote }}
+        {{- if .Values.metrics.enabled }}
+        - name: PROMETHEUS_ENDPOINT
+          value: {{ .Values.metrics.prometheusEndpoint | quote }}
+        {{- end }}
+        {{- if .Values.temporal.tls.enabled }}
+        - name: TEMPORAL_TLS_KEY
+          value: "/etc/temporal/tls/key"
+        - name: TEMPORAL_TLS_CERT
+          value: "/etc/temporal/tls/cert"
+        - name: TEMPORAL_TLS_CA
+          value: "/etc/temporal/tls/ca"
+        {{- if .Values.temporal.tls.disableHostVerification }}
+        - name: TEMPORAL_TLS_DISABLE_HOST_VERIFICATION
+          value: "true"
+        {{- end }}
+        {{- end }}
+        {{- if .Values.resources.workers }}
+        resources:
+          {{- toYaml .Values.resources.workers | nindent 10 }}
+        {{- end }}
+        {{- if .Values.temporal.tls.enabled }}
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/temporal/tls
+          readOnly: true
+        {{- end }}
+      {{- if .Values.temporal.tls.enabled }}
+      volumes:
+      - name: tls
+        secret:
+          secretName: {{ if .Values.temporal.tls.existingSecret }}{{ .Values.temporal.tls.existingSecret }}{{ else }}{{ include "benchmark-workers.fullname" . }}-tls{{ end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always 

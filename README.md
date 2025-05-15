@@ -32,7 +32,11 @@ The table below lists the environment variables available and the relevant Tempo
 | TEMPORAL_ACTIVITY_TASK_POLLERS | [WorkerOptions.MaxConcurrentActivityTaskPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#WorkerOptions) | Number of activity task pollers |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
 
-To run the worker in a Kubernetes cluster you could use:
+#### Kubernetes Deployment
+
+There are several ways to deploy the worker in Kubernetes:
+
+1. **Using kubectl run**:
 
 ```
 kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
@@ -44,7 +48,43 @@ kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
     --env "TEMPORAL_ACTIVITY_TASK_POLLERS=8"
 ```
 
-However, we suggest you use a deployment for workers rather than `kubectl run` so that you can collect metrics via prometheus. We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
+2. **Using the example deployment YAML**:
+
+We provide an [example deployment spec](./deployment.yaml) for you to customize to your requirements. Once you have edited the environment variables in the deployment.yaml you can create the deployment with `kubectl apply -f ./deployment.yaml`.
+
+3. **Using the Helm chart (Recommended)**:
+
+We provide a Helm chart that can be installed from the GitHub Container Registry:
+
+```bash
+# Install the chart
+helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
+```
+
+For more details and configuration options, see the [Helm chart documentation](./charts/benchmark-workers/README.md).
+
+#### Prometheus Metrics
+
+The worker can expose Prometheus metrics to help monitor the performance of your Temporal workers and cluster. To enable metrics:
+
+1. **Using kubectl or deployment YAML**:
+   ```
+   --env "PROMETHEUS_ENDPOINT=:9090"
+   ```
+
+2. **Using the Helm chart**:
+   ```bash
+   helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+     --set metrics.enabled=true
+   ```
+
+When using the Helm chart, it will automatically create a headless service for service discovery and can optionally create a ServiceMonitor resource for Prometheus Operator:
+
+```bash
+helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+  --set metrics.enabled=true \
+  --set metrics.serviceMonitor.enabled=true
+```
 
 You can then use the benchmark workflows with your benchmark tool. To test with `tctl` you could run:
 

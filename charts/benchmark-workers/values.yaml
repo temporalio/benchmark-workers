@@ -1,0 +1,73 @@
+# Default values for benchmark-workers chart
+replicaCount:
+  workers: 1
+  soakTest: 1
+
+image:
+  repository: ghcr.io/temporalio/benchmark-workers
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+temporal:
+  grpcEndpoint: "temporal-frontend.temporal:7233"
+  namespace: "default"
+  taskQueue: "benchmark"
+  workflowTaskPollers: "16"
+  activityTaskPollers: "8"
+  tls:
+    enabled: false
+    # Provide these values or use an existing Secret
+    key: ""
+    cert: ""
+    ca: ""
+    disableHostVerification: false
+    # If using an existing secret, specify the name
+    existingSecret: ""
+
+metrics:
+  enabled: true
+  # The port to expose metrics on
+  port: 9090
+  # The Prometheus endpoint path and listening address
+  prometheusEndpoint: ":9090"
+  # Headless service configuration
+  service:
+    annotations: {}
+  # ServiceMonitor configuration for Prometheus Operator
+  serviceMonitor:
+    enabled: true
+    # Additional labels to add to the ServiceMonitor
+    additionalLabels: {}
+    # Scrape interval
+    interval: 15s
+    # Scrape timeout
+    scrapeTimeout: 10s
+
+soakTest:
+  enabled: true
+  concurrentWorkflows: "10"
+  workflowType: "ExecuteActivity"
+  workflowArgs: '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
+
+resources:
+  workers: {}
+    # limits:
+    #   cpu: 1000m
+    #   memory: 1Gi
+    # requests:
+    #   cpu: 500m
+    #   memory: 512Mi
+  soakTest: {}
+    # limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    # requests:
+    #   cpu: 200m
+    #   memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {} 
