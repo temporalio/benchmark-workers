@@ -1,15 +1,11 @@
 # Default values for benchmark-workers chart
-replicaCount:
-  workers: 1
-  soakTest: 1
+nameOverride: ""
+fullnameOverride: ""
 
 image:
   repository: ghcr.io/temporalio/benchmark-workers
   tag: latest
   pullPolicy: Always
-
-nameOverride: ""
-fullnameOverride: ""
 
 temporal:
   grpcEndpoint: "temporal-frontend.temporal:7233"
@@ -46,21 +42,27 @@ metrics:
     # Scrape timeout
     scrapeTimeout: 10s
 
-soakTest:
-  enabled: true
-  concurrentWorkflows: "10"
-  workflowType: "ExecuteActivity"
-  workflowArgs: '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
-
-resources:
-  workers: {}
+workers:
+  # Number of worker replicas
+  replicaCount: 1
+  # Resources configuration
+  resources: {}
     # limits:
     #   cpu: 1000m
     #   memory: 1Gi
     # requests:
     #   cpu: 500m
     #   memory: 512Mi
-  soakTest: {}
+
+soakTest:
+  enabled: true
+  # Number of soak test replicas
+  replicaCount: 1
+  concurrentWorkflows: "10"
+  workflowType: "ExecuteActivity"
+  workflowArgs: '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
+  # Resources configuration
+  resources: {}
     # limits:
     #   cpu: 500m
     #   memory: 512Mi

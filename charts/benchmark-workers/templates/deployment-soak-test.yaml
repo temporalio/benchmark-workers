@@ -8,7 +8,7 @@ metadata:
     component: soak-test
     {{- include "benchmark-workers.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount.soakTest }}
+  replicas: {{ .Values.soakTest.replicaCount }}
   selector:
     matchLabels:
       app: benchmark
@@ -54,9 +54,9 @@ spec:
         - "-t"
         - {{ .Values.soakTest.workflowType | quote }}
         - {{ .Values.soakTest.workflowArgs | quote }}
-        {{- if .Values.resources.soakTest }}
+        {{- if .Values.soakTest.resources }}
         resources:
-          {{- toYaml .Values.resources.soakTest | nindent 10 }}
+          {{- toYaml .Values.soakTest.resources | nindent 10 }}
         {{- end }}
         {{- if .Values.temporal.tls.enabled }}
         volumeMounts:

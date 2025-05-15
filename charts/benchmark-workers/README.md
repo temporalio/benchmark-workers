@@ -53,8 +53,6 @@ The following table lists the configurable parameters for the benchmark-workers 
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `replicaCount.workers` | Number of worker pods | `1` |
-| `replicaCount.soakTest` | Number of soak test pods | `1` |
 | `image.repository` | Image repository | `ghcr.io/temporalio/benchmark-workers` |
 | `image.tag` | Image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
@@ -69,18 +67,25 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `temporal.tls.ca` | TLS CA certificate content (base64 encoded) | `""` |
 | `temporal.tls.existingSecret` | Use existing Kubernetes secret for TLS | `""` |
 | `temporal.tls.disableHostVerification` | Disable TLS host verification | `false` |
-| `metrics.enabled` | Enable Prometheus metrics | `false` |
+| `metrics.enabled` | Enable Prometheus metrics | `true` |
 | `metrics.port` | Port to expose metrics on | `9090` |
 | `metrics.prometheusEndpoint` | Prometheus metrics endpoint | `:9090` |
 | `metrics.service.annotations` | Annotations for the metrics service | `{}` |
-| `metrics.serviceMonitor.enabled` | Enable ServiceMonitor for Prometheus Operator | `false` |
+| `metrics.serviceMonitor.enabled` | Enable ServiceMonitor for Prometheus Operator | `true` |
 | `metrics.serviceMonitor.additionalLabels` | Additional labels for the ServiceMonitor | `{}` |
 | `metrics.serviceMonitor.interval` | Scrape interval | `15s` |
 | `metrics.serviceMonitor.scrapeTimeout` | Scrape timeout | `10s` |
+| `workers.replicaCount` | Number of worker pods | `1` |
+| `workers.resources` | Resource requests and limits for worker pods | `{}` |
 | `soakTest.enabled` | Enable soak test deployment | `true` |
+| `soakTest.replicaCount` | Number of soak test pods | `1` |
 | `soakTest.concurrentWorkflows` | Number of concurrent workflows | `10` |
 | `soakTest.workflowType` | Workflow type to execute | `ExecuteActivity` |
 | `soakTest.workflowArgs` | Arguments for the workflow | `{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }` |
+| `soakTest.resources` | Resource requests and limits for soak test pods | `{}` |
+| `nodeSelector` | Node labels for pod assignment | `{}` |
+| `tolerations` | Tolerations for pod assignment | `[]` |
+| `affinity` | Affinity for pod assignment | `{}` |
 
 ## TLS Configuration
 
@@ -179,4 +184,12 @@ helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
 helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
   --set metrics.enabled=true \
   --set metrics.serviceMonitor.enabled=true
+```
+
+### Scale worker or soak test replicas
+
+```bash
+helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+  --set workers.replicaCount=3 \
+  --set soakTest.replicaCount=2
 ``` 

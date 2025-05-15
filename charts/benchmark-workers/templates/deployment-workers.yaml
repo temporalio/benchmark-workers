@@ -7,7 +7,7 @@ metadata:
     component: workers
     {{- include "benchmark-workers.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount.workers }}
+  replicas: {{ .Values.workers.replicaCount }}
   selector:
     matchLabels:
       app: benchmark
@@ -57,9 +57,9 @@ spec:
           value: "true"
         {{- end }}
         {{- end }}
-        {{- if .Values.resources.workers }}
+        {{- if .Values.workers.resources }}
         resources:
-          {{- toYaml .Values.resources.workers | nindent 10 }}
+          {{- toYaml .Values.workers.resources | nindent 10 }}
         {{- end }}
         {{- if .Values.temporal.tls.enabled }}
         volumeMounts:
