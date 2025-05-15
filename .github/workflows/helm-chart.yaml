@@ -92,6 +92,6 @@ jobs:
           helm package charts/benchmark-workers
           
           # Push to GHCR
-          helm push benchmark-workers-${VERSION}.tgz oci://ghcr.io/temporalio/benchmark-workers-chart
+          helm push benchmark-workers-${VERSION}.tgz oci://ghcr.io/temporalio/charts
           
-          echo "✅ Chart pushed successfully to oci://ghcr.io/temporalio/benchmark-workers-chart:${VERSION}" 
+          echo "✅ Chart pushed successfully to oci://ghcr.io/temporalio/charts/benchmark-workers:${VERSION}" 
