@@ -146,6 +146,37 @@ The worker provides the following workflows for you to use during benchmarking:
 
 This workflow takes a count, an activity name and an activity input. The activity `Activity` will be run `Count` times with the given `input`. If the activity returns an error the workflow will fail with that error.
 
+### DSLWorkflow
+
+`DSLWorkflow([]DSLStep)`
+
+This workflow takes an array of steps, each of which can execute an activity or a child workflow (which is another invocation of DSLWorkflow). This allows you to compose complex benchmarking scenarios, including nested and repeated activities and child workflows.
+
+Each step can have the following fields:
+- `a`: (string) Activity name to execute
+- `i`: (object, optional) Input to pass to the activity
+- `c`: (array of steps, optional) Child steps to execute as a child workflow
+- `r`: (int, optional) Number of times to repeat this step (default 1)
+
+#### Example
+
+This example runs the `Echo` activity 3 times, then starts a child workflow which also runs the `Echo` activity 3 times:
+
+```
+[
+  {"a": "Echo", "i": {"Message": "test"}, "r": 3},
+  {"c": [
+    {"a": "Echo", "i": {"Message": "test"}, "r": 3}
+  ]}
+]
+```
+
+You can start this workflow using `tctl` or any Temporal client, for example:
+
+```
+tctl workflow start --taskqueue benchmark --workflow_type DSLWorkflow --execution_timeout 60 -i '[{"a": "Echo", "i": {"Message": "test"}, "r": 3}, {"c": [{"a": "Echo", "i": {"Message": "test"}, "r": 3}]}]'
+```
+
 ## Activities
 
 The worker provides the following activities for you to use during benchmarking:
