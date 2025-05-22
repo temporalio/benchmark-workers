@@ -4,7 +4,7 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/temporalio/benchmark-workers
-  tag: latest
+  tag: v1.2.0
   pullPolicy: Always
 
 temporal:
