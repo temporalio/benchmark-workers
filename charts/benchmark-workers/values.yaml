@@ -4,24 +4,48 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/temporalio/benchmark-workers
-  tag: v1.2.0
+  tag: v1.3.0
   pullPolicy: Always
 
 temporal:
+  # GRPC endpoint(s) - can be a single string or array of strings
+  # Examples:
+  #   grpcEndpoint: "temporal-frontend.temporal:7233"
+  #   grpcEndpoint: ["temporal1.temporal:7233", "temporal2.temporal:7233"]
   grpcEndpoint: "temporal-frontend.temporal:7233"
+  
+  # Namespace(s) - can be a single string or array of strings
+  # Examples:
+  #   namespace: "default"
+  #   namespace: ["namespace1", "namespace2", "namespace3"]
   namespace: "default"
+  
   taskQueue: "benchmark"
   workflowTaskPollers: "16"
   activityTaskPollers: "8"
+  
   tls:
     enabled: false
+    # TLS configuration can be provided as single values (reused for all namespaces)
+    # or as arrays (one per namespace)
     # Provide these values or use an existing Secret
     key: ""
     cert: ""
     ca: ""
     disableHostVerification: false
-    # If using an existing secret, specify the name
+    
+    # For multi-namespace with different TLS configs, use arrays:
+    # keys: ["key1-content", "key2-content"]
+    # certs: ["cert1-content", "cert2-content"] 
+    # cas: ["ca1-content", "ca2-content"]
+    keys: []
+    certs: []
+    cas: []
+    
+    # If using an existing secret, specify the name(s)
+    # Can be a single secret (reused for all namespaces) or array of secrets
     existingSecret: ""
+    existingSecrets: []
 
 metrics:
   enabled: true

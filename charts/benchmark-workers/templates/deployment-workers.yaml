@@ -32,9 +32,9 @@ spec:
         {{- end }}
         env:
         - name: TEMPORAL_GRPC_ENDPOINT
-          value: {{ .Values.temporal.grpcEndpoint | quote }}
+          value: {{ include "benchmark-workers.grpcEndpoints" . | quote }}
         - name: TEMPORAL_NAMESPACE
-          value: {{ .Values.temporal.namespace | quote }}
+          value: {{ include "benchmark-workers.namespaces" . | quote }}
         - name: TEMPORAL_TASK_QUEUE
           value: {{ .Values.temporal.taskQueue | quote }}
         - name: TEMPORAL_WORKFLOW_TASK_POLLERS
@@ -46,12 +46,26 @@ spec:
           value: {{ .Values.metrics.prometheusEndpoint | quote }}
         {{- end }}
         {{- if .Values.temporal.tls.enabled }}
+        {{- $tlsKeys := include "benchmark-workers.tlsKeys" . }}
+        {{- $tlsCerts := include "benchmark-workers.tlsCerts" . }}
+        {{- $tlsCas := include "benchmark-workers.tlsCas" . }}
+        {{- if or $tlsKeys $tlsCerts $tlsCas }}
+        - name: TEMPORAL_TLS_KEY
+          value: {{ $tlsKeys | quote }}
+        - name: TEMPORAL_TLS_CERT
+          value: {{ $tlsCerts | quote }}
+        {{- if $tlsCas }}
+        - name: TEMPORAL_TLS_CA
+          value: {{ $tlsCas | quote }}
+        {{- end }}
+        {{- else }}
         - name: TEMPORAL_TLS_KEY
           value: "/etc/temporal/tls/key"
         - name: TEMPORAL_TLS_CERT
           value: "/etc/temporal/tls/cert"
         - name: TEMPORAL_TLS_CA
           value: "/etc/temporal/tls/ca"
+        {{- end }}
         {{- if .Values.temporal.tls.disableHostVerification }}
         - name: TEMPORAL_TLS_DISABLE_HOST_VERIFICATION
           value: "true"
@@ -61,13 +75,13 @@ spec:
         resources:
           {{- toYaml .Values.workers.resources | nindent 10 }}
         {{- end }}
-        {{- if .Values.temporal.tls.enabled }}
+        {{- if and .Values.temporal.tls.enabled (not (or (include "benchmark-workers.tlsKeys" .) (include "benchmark-workers.tlsCerts" .) (include "benchmark-workers.tlsCas" .))) }}
         volumeMounts:
         - name: tls
           mountPath: /etc/temporal/tls
           readOnly: true
         {{- end }}
-      {{- if .Values.temporal.tls.enabled }}
+      {{- if and .Values.temporal.tls.enabled (not (or (include "benchmark-workers.tlsKeys" .) (include "benchmark-workers.tlsCerts" .) (include "benchmark-workers.tlsCas" .))) }}
       volumes:
       - name: tls
         secret:
