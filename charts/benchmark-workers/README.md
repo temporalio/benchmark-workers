@@ -121,6 +121,7 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `metrics.serviceMonitor.scrapeTimeout` | Scrape timeout | `10s` |
 | `workers.replicaCount` | Number of worker pods | `1` |
 | `workers.resources` | Resource requests and limits for worker pods | `{}` |
+| `additionalEnv` | Additional environment variables for worker pods | `[]` |
 | `soakTest.enabled` | Enable soak test deployment | `true` |
 | `soakTest.replicaCount` | Number of soak test pods | `1` |
 | `soakTest.concurrentWorkflows` | Number of concurrent workflows | `10` |
@@ -237,6 +238,65 @@ metrics:
       release: monitoring
 ```
 
+## Additional Environment Variables
+
+The chart supports adding custom environment variables to the worker pods using the `additionalEnv` parameter. This is useful for configuring application-specific settings or integrating with external services.
+
+### Simple Environment Variables
+
+```yaml
+additionalEnv:
+  - name: CUSTOM_SETTING
+    value: "my-value"
+  - name: LOG_LEVEL
+    value: "DEBUG"
+```
+
+### Environment Variables from Secrets
+
+```yaml
+additionalEnv:
+  - name: DATABASE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: my-secret
+        key: password
+  - name: API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: api-credentials
+        key: api-key
+```
+
+### Environment Variables from ConfigMaps
+
+```yaml
+additionalEnv:
+  - name: APP_CONFIG
+    valueFrom:
+      configMapKeyRef:
+        name: app-config
+        key: config.json
+```
+
+### Mixed Environment Variables
+
+```yaml
+additionalEnv:
+  - name: ENVIRONMENT
+    value: "production"
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: database-credentials
+        key: url
+  - name: FEATURE_FLAGS
+    valueFrom:
+      configMapKeyRef:
+        name: feature-config
+        key: flags
+```
+
 ## Examples
 
 ### Deploy workers with multiple namespaces
@@ -286,6 +346,16 @@ helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
 helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
   --set metrics.enabled=true \
   --set metrics.serviceMonitor.enabled=true
+```
+
+### Deploy with additional environment variables
+
+```bash
+helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+  --set additionalEnv[0].name=LOG_LEVEL \
+  --set additionalEnv[0].value=DEBUG \
+  --set additionalEnv[1].name=CUSTOM_SETTING \
+  --set additionalEnv[1].value=production-value
 ```
 
 ### Scale worker or soak test replicas

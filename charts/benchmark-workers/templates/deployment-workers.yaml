@@ -71,6 +71,9 @@ spec:
           value: "true"
         {{- end }}
         {{- end }}
+        {{- if .Values.additionalEnv }}
+        {{- toYaml .Values.additionalEnv | nindent 8 }}
+        {{- end }}
         {{- if .Values.workers.resources }}
         resources:
           {{- toYaml .Values.workers.resources | nindent 10 }}
