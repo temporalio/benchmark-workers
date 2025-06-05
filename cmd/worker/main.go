@@ -74,6 +74,15 @@ func main() {
 	tlsCertPaths := parseCommaSeparatedEnv("TEMPORAL_TLS_CERT", len(namespaceList))
 	tlsCaPaths := parseCommaSeparatedEnv("TEMPORAL_TLS_CA", len(namespaceList))
 
+	// Create shared metrics handler if Prometheus is enabled
+	var metricsHandler client.MetricsHandler
+	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
+		metricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
+			ListenAddress: os.Getenv("PROMETHEUS_ENDPOINT"),
+			TimerType:     "histogram",
+		}))
+	}
+
 	// Create workers for each namespace
 	var wg sync.WaitGroup
 	workers := make([]worker.Worker, len(namespaceList))
@@ -118,11 +127,8 @@ func main() {
 			clientOptions.ConnectionOptions.TLS = &tlsConfig
 		}
 
-		if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
-			clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
-				ListenAddress: os.Getenv("PROMETHEUS_ENDPOINT"),
-				TimerType:     "histogram",
-			}))
+		if metricsHandler != nil {
+			clientOptions.MetricsHandler = metricsHandler
 		}
 
 		c, err := client.Dial(clientOptions)
