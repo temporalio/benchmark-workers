@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -19,22 +21,65 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+var sNamespace = flag.String("n", "default", "namespace")
+var sTaskQueue = flag.String("tq", "benchmark", "task queue")
+var nWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers (-1 = use default, 0 = disable)")
+var nActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use default, 0 = disable)")
+
+// Track which flags were explicitly set
+var flagsSet = make(map[string]bool)
+
+func getStringValue(flagName, envName, flagValue, defaultValue string) string {
+	if flagsSet[flagName] {
+		return flagValue
+	}
+	if envValue := os.Getenv(envName); envValue != "" {
+		return envValue
+	}
+	return defaultValue
+}
+
+func getIntValue(flagName, envName string, flagValue, defaultValue int) int {
+	if flagsSet[flagName] {
+		return flagValue
+	}
+	if envValue := os.Getenv(envName); envValue != "" {
+		if parsed, err := strconv.Atoi(envValue); err == nil {
+			return parsed
+		}
+	}
+	return defaultValue
+}
+
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags]\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), "\nEnvironment variables (used if flag not set):\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_NAMESPACE\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_TASK_QUEUE\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WORKFLOW_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_ACTIVITY_TASK_POLLERS\n")
+	}
+
+	flag.Parse()
+
+	// Track which flags were explicitly set by the user
+	flag.Visit(func(f *flag.Flag) {
+		flagsSet[f.Name] = true
+	})
+
 	if _, err := maxprocs.Set(); err != nil {
 		log.Printf("WARNING: failed to set GOMAXPROCS: %v.\n", err)
 	}
 
-	namespace := os.Getenv("TEMPORAL_NAMESPACE")
-	if namespace == "" {
-		namespace = "default"
-	}
+	// Apply precedence: command line > environment variable > default
+	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
+	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
+	workflowPollers := getIntValue("wp", "TEMPORAL_WORKFLOW_TASK_POLLERS", *nWorkflowPollers, -1)
+	activityPollers := getIntValue("ap", "TEMPORAL_ACTIVITY_TASK_POLLERS", *nActivityPollers, -1)
 
 	log.Printf("Creating worker for namespace: %s", namespace)
-
-	taskQueue := os.Getenv("TEMPORAL_TASK_QUEUE")
-	if taskQueue == "" {
-		taskQueue = "benchmark"
-	}
 
 	clientOptions := client.Options{
 		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
@@ -89,20 +134,12 @@ func main() {
 
 	workerOptions := worker.Options{}
 
-	if os.Getenv("TEMPORAL_WORKFLOW_TASK_POLLERS") != "" {
-		pollers, err := strconv.Atoi(os.Getenv("TEMPORAL_WORKFLOW_TASK_POLLERS"))
-		if err != nil {
-			log.Fatalf("TEMPORAL_WORKFLOW_TASK_POLLERS is invalid: %v", err)
-		}
-		workerOptions.MaxConcurrentWorkflowTaskPollers = pollers
+	if workflowPollers >= 0 {
+		workerOptions.MaxConcurrentWorkflowTaskPollers = workflowPollers
 	}
 
-	if os.Getenv("TEMPORAL_ACTIVITY_TASK_POLLERS") != "" {
-		pollers, err := strconv.Atoi(os.Getenv("TEMPORAL_ACTIVITY_TASK_POLLERS"))
-		if err != nil {
-			log.Fatalf("TEMPORAL_ACTIVITY_TASK_POLLERS is invalid: %v", err)
-		}
-		workerOptions.MaxConcurrentActivityTaskPollers = pollers
+	if activityPollers >= 0 {
+		workerOptions.MaxConcurrentActivityTaskPollers = activityPollers
 	}
 
 	// TODO: Support more worker options

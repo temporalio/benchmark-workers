@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/alitto/pond"
@@ -20,30 +21,82 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
-var nWorfklows = flag.Int("c", 10, "concurrent workflows")
+var nWorkflows = flag.Int("c", 10, "concurrent workflows")
 var sWorkflow = flag.String("t", "", "workflow type")
 var sSignalType = flag.String("s", "", "signal type")
 var bWait = flag.Bool("w", true, "wait for workflows to complete")
 var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
+// Track which flags were explicitly set
+var flagsSet = make(map[string]bool)
+
+// flagValue helps implement precedence: command line > environment variable > default
+func getStringValue(flagName, envName, flagValue, defaultValue string) string {
+	if flagsSet[flagName] {
+		return flagValue
+	}
+	if envValue := os.Getenv(envName); envValue != "" {
+		return envValue
+	}
+	return defaultValue
+}
+
+func getIntValue(flagName, envName string, flagValue, defaultValue int) int {
+	if flagsSet[flagName] {
+		return flagValue
+	}
+	if envValue := os.Getenv(envName); envValue != "" {
+		if parsed, err := strconv.Atoi(envValue); err == nil {
+			return parsed
+		}
+	}
+	return defaultValue
+}
+
+func getBoolValue(flagName, envName string, flagValue, defaultValue bool) bool {
+	if flagsSet[flagName] {
+		return flagValue
+	}
+	if envValue := os.Getenv(envName); envValue != "" {
+		if parsed, err := strconv.ParseBool(envValue); err == nil {
+			return parsed
+		}
+	}
+	return defaultValue
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] [workflow input] ...\n", os.Args[0])
 		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), "\nEnvironment variables (used if flag not set):\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_CONCURRENT_WORKFLOWS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WORKFLOW_TYPE\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_SIGNAL_TYPE\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WAIT\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_NAMESPACE\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_TASK_QUEUE\n")
 	}
 
 	flag.Parse()
+
+	// Track which flags were explicitly set by the user
+	flag.Visit(func(f *flag.Flag) {
+		flagsSet[f.Name] = true
+	})
 
 	if _, err := maxprocs.Set(); err != nil {
 		log.Printf("WARNING: failed to set GOMAXPROCS: %v.\n", err)
 	}
 
-	namespace := *sNamespace
-	envNamespace := os.Getenv("TEMPORAL_NAMESPACE")
-	if envNamespace != "" && envNamespace != "default" {
-		namespace = envNamespace
-	}
+	// Apply precedence: command line > environment variable > default
+	concurrentWorkflows := getIntValue("c", "TEMPORAL_CONCURRENT_WORKFLOWS", *nWorkflows, 10)
+	workflowType := getStringValue("t", "TEMPORAL_WORKFLOW_TYPE", *sWorkflow, "")
+	signalType := getStringValue("s", "TEMPORAL_SIGNAL_TYPE", *sSignalType, "")
+	waitForCompletion := getBoolValue("w", "TEMPORAL_WAIT", *bWait, true)
+	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
+	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
 
 	log.Printf("Using namespace: %s", namespace)
 
@@ -111,23 +164,23 @@ func main() {
 		input = append(input, i)
 	}
 
-	pool := pond.New(*nWorfklows, 0)
+	pool := pond.New(concurrentWorkflows, 0)
 
 	var starter func() (client.WorkflowRun, error)
 
-	if *sSignalType != "" {
+	if signalType != "" {
 		starter = func() (client.WorkflowRun, error) {
 			wID := uuid.New()
 			return c.SignalWithStartWorkflow(
 				context.Background(),
 				wID,
-				*sSignalType,
+				signalType,
 				nil,
 				client.StartWorkflowOptions{
 					ID:        wID,
-					TaskQueue: *sTaskQueue,
+					TaskQueue: taskQueue,
 				},
-				*sWorkflow,
+				workflowType,
 				input...,
 			)
 		}
@@ -136,9 +189,9 @@ func main() {
 			return c.ExecuteWorkflow(
 				context.Background(),
 				client.StartWorkflowOptions{
-					TaskQueue: *sTaskQueue,
+					TaskQueue: taskQueue,
 				},
-				*sWorkflow,
+				workflowType,
 				input...,
 			)
 		}
@@ -153,7 +206,7 @@ func main() {
 					return
 				}
 
-				if *bWait {
+				if waitForCompletion {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
 						log.Println("Workflow failed", err)
