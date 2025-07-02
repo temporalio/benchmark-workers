@@ -47,46 +47,6 @@ cd benchmark-workers
 helm install benchmark-workers ./charts/benchmark-workers
 ```
 
-## Multi-Namespace Support
-
-The chart supports deploying workers and runners that work with multiple Temporal namespaces simultaneously. This provides a more realistic load pattern by distributing work across multiple namespaces with a single deployment.
-
-### Configuration Examples
-
-#### Single Namespace (Traditional)
-```yaml
-temporal:
-  grpcEndpoint: "temporal-frontend.temporal:7233"
-  namespace: "default"
-```
-
-#### Multiple Namespaces with Same Configuration
-```yaml
-temporal:
-  grpcEndpoint: "temporal-frontend.temporal:7233"  # Same endpoint for all
-  namespace: ["namespace1", "namespace2", "namespace3"]
-```
-
-#### Multiple Namespaces with Different Endpoints
-```yaml
-temporal:
-  grpcEndpoint: ["temporal1.temporal:7233", "temporal2.temporal:7233", "temporal3.temporal:7233"]
-  namespace: ["namespace1", "namespace2", "namespace3"]
-```
-
-#### Multiple Namespaces with Mixed TLS Configuration
-```yaml
-temporal:
-  grpcEndpoint: ["temporal1.temporal:7233", "temporal2.temporal:7233"]
-  namespace: ["namespace1", "namespace2", "namespace3"]
-  tls:
-    enabled: true
-    # Use arrays for different TLS configs per namespace
-    keys: ["key1-content", "key2-content"]  # namespace3 will reuse key2-content
-    certs: ["cert1-content", "cert2-content"] # namespace3 will reuse cert2-content
-    ca: "shared-ca-content"  # Same CA for all namespaces
-```
-
 ## Configuration
 
 The following table lists the configurable parameters for the benchmark-workers chart and their default values.
@@ -96,8 +56,8 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `image.repository` | Image repository | `ghcr.io/temporalio/benchmark-workers` |
 | `image.tag` | Image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
-| `temporal.grpcEndpoint` | Temporal frontend endpoint(s) (string or array) | `temporal-frontend.temporal:7233` |
-| `temporal.namespace` | Temporal namespace(s) (string or array) | `default` |
+| `temporal.grpcEndpoint` | Temporal frontend endpoint | `temporal-frontend.temporal:7233` |
+| `temporal.namespace` | Temporal namespace | `default` |
 | `temporal.taskQueue` | Task queue name | `benchmark` |
 | `temporal.workflowTaskPollers` | Number of workflow task pollers | `16` |
 | `temporal.activityTaskPollers` | Number of activity task pollers | `8` |
@@ -105,11 +65,7 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `temporal.tls.key` | TLS key content (base64 encoded) | `""` |
 | `temporal.tls.cert` | TLS certificate content (base64 encoded) | `""` |
 | `temporal.tls.ca` | TLS CA certificate content (base64 encoded) | `""` |
-| `temporal.tls.keys` | Array of TLS key contents for multi-namespace | `[]` |
-| `temporal.tls.certs` | Array of TLS certificate contents for multi-namespace | `[]` |
-| `temporal.tls.cas` | Array of TLS CA certificate contents for multi-namespace | `[]` |
 | `temporal.tls.existingSecret` | Use existing Kubernetes secret for TLS | `""` |
-| `temporal.tls.existingSecrets` | Array of existing Kubernetes secrets for multi-namespace | `[]` |
 | `temporal.tls.disableHostVerification` | Disable TLS host verification | `false` |
 | `metrics.enabled` | Enable Prometheus metrics | `true` |
 | `metrics.port` | Port to expose metrics on | `9090` |
@@ -134,9 +90,7 @@ The following table lists the configurable parameters for the benchmark-workers 
 
 ## TLS Configuration
 
-### Single Namespace TLS
-
-To use TLS with a single namespace, set `temporal.tls.enabled` to `true` and either:
+To use TLS, set `temporal.tls.enabled` to `true` and either:
 
 1. Provide the TLS materials in the values file (not recommended for production):
 
@@ -165,46 +119,6 @@ temporal:
   tls:
     enabled: true
     existingSecret: "temporal-tls"
-```
-
-### Multi-Namespace TLS
-
-For multiple namespaces, you can either:
-
-1. **Use the same TLS configuration for all namespaces:**
-
-```yaml
-temporal:
-  namespace: ["ns1", "ns2", "ns3"]
-  tls:
-    enabled: true
-    key: <base64-encoded-key>  # Same key for all namespaces
-    cert: <base64-encoded-cert>  # Same cert for all namespaces
-    ca: <base64-encoded-ca>  # Same CA for all namespaces
-```
-
-2. **Use different TLS configurations per namespace:**
-
-```yaml
-temporal:
-  namespace: ["ns1", "ns2", "ns3"]
-  tls:
-    enabled: true
-    keys: ["<base64-key1>", "<base64-key2>", "<base64-key3>"]
-    certs: ["<base64-cert1>", "<base64-cert2>", "<base64-cert3>"]
-    cas: ["<base64-ca1>", "<base64-ca2>", "<base64-ca3>"]
-```
-
-3. **Mix single and array values (arrays take precedence):**
-
-```yaml
-temporal:
-  namespace: ["ns1", "ns2", "ns3"]
-  tls:
-    enabled: true
-    keys: ["<base64-key1>", "<base64-key2>"]  # ns3 will reuse key2
-    certs: ["<base64-cert1>", "<base64-cert2>"]  # ns3 will reuse cert2
-    ca: "<base64-shared-ca>"  # Same CA for all namespaces
 ```
 
 ## Prometheus Metrics Integration
@@ -299,21 +213,6 @@ additionalEnv:
 
 ## Examples
 
-### Deploy workers with multiple namespaces
-
-```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.namespace="{namespace1,namespace2,namespace3}"
-```
-
-### Deploy with different endpoints per namespace
-
-```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.namespace="{namespace1,namespace2}" \
-  --set temporal.grpcEndpoint="{temporal1.temporal:7233,temporal2.temporal:7233}"
-```
-
 ### Deploy workers with increased pollers
 
 ```bash
@@ -329,11 +228,10 @@ helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
   --set soakTest.concurrentWorkflows=50
 ```
 
-### Deploy with TLS enabled for multiple namespaces
+### Deploy with TLS enabled
 
 ```bash
 helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.namespace="{namespace1,namespace2}" \
   --set temporal.tls.enabled=true \
   --set-file temporal.tls.key=/path/to/key.pem \
   --set-file temporal.tls.cert=/path/to/cert.pem \
