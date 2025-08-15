@@ -14,13 +14,23 @@ type SleepActivityInput struct {
 func SleepActivity(ctx context.Context, input SleepActivityInput) error {
 	sleepTimer := time.After(time.Duration(input.SleepTimeInSeconds) * time.Second)
 	heartbeatTimeout := activity.GetInfo(ctx).HeartbeatTimeout
+
+	// If no heartbeat timeout is set, we don't need heartbeating
 	if heartbeatTimeout == 0 {
-		// If no heartbeat timeout is set, assume we don't want heartbeating.
-		// Set the heartbeat time longer than our sleep time so that we never send a heartbeat.
-		heartbeatTimeout = time.Duration(input.SleepTimeInSeconds) * 2
+		for {
+			select {
+			case <-sleepTimer:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
 	}
+
+	// Create ticker only when heartbeating is needed
 	heartbeatTick := time.Duration(0.8 * float64(heartbeatTimeout))
-	t := time.NewTicker(heartbeatTick)
+	ticker := time.NewTicker(heartbeatTick)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -28,7 +38,7 @@ func SleepActivity(ctx context.Context, input SleepActivityInput) error {
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-t.C:
+		case <-ticker.C:
 			activity.RecordHeartbeat(ctx)
 		}
 	}
