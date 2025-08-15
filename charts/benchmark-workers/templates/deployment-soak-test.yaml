@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: benchmark-soak-test
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
         - name: TEMPORAL_GRPC_ENDPOINT

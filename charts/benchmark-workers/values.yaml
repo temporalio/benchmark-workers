@@ -4,7 +4,8 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/temporalio/benchmark-workers
-  tag: v1.4.0
+  # Default to appVersion from Chart.yaml
+  tag: ""
   pullPolicy: Always
 
 temporal:
