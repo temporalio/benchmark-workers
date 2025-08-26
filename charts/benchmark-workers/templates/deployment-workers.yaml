@@ -7,6 +7,8 @@ metadata:
     component: workers
     {{- include "benchmark-workers.labels" . | nindent 4 }}
 spec:
+  strategy:
+    type: Recreate
   replicas: {{ .Values.workers.replicaCount }}
   selector:
     matchLabels:

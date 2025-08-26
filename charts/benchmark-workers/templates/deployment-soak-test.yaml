@@ -8,6 +8,8 @@ metadata:
     component: soak-test
     {{- include "benchmark-workers.labels" . | nindent 4 }}
 spec:
+  strategy:
+    type: Recreate
   replicas: {{ .Values.soakTest.replicaCount }}
   selector:
     matchLabels:
