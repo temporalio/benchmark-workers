@@ -27,6 +27,10 @@ spec:
       - name: benchmark-soak-test
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
         env:
         - name: TEMPORAL_GRPC_ENDPOINT
           value: {{ .Values.temporal.grpcEndpoint | quote }}
@@ -36,6 +40,10 @@ spec:
           value: {{ .Values.temporal.taskQueue | quote }}
         - name: CONCURRENT_WORKFLOWS
           value: {{ .Values.soakTest.concurrentWorkflows | quote }}
+        {{- if .Values.metrics.enabled }}
+        - name: PROMETHEUS_ENDPOINT
+          value: {{ .Values.metrics.prometheusEndpoint | quote }}
+        {{- end }}
         {{- if .Values.temporal.tls.enabled }}
         {{- if and .Values.temporal.tls.key .Values.temporal.tls.cert }}
         - name: TEMPORAL_TLS_KEY
