@@ -164,8 +164,9 @@ Each step can have the following fields:
 - `i`: (object, optional) Input to pass to the activity
 - `c`: (array of steps, optional) Child steps to execute as a child workflow
 - `r`: (int, optional) Number of times to repeat this step (default 1)
+- `p`: (int, optional) Size in bytes of padding data to add to activity inputs for increasing history size
 
-#### Example
+#### Examples
 
 This example runs the `Echo` activity 3 times, then starts a child workflow which also runs the `Echo` activity 3 times:
 
@@ -174,6 +175,18 @@ This example runs the `Echo` activity 3 times, then starts a child workflow whic
   {"a": "Echo", "i": {"Message": "test"}, "r": 3},
   {"c": [
     {"a": "Echo", "i": {"Message": "test"}, "r": 3}
+  ]}
+]
+```
+
+This example demonstrates using padding to increase history size by adding padding data to each activity:
+
+```
+[
+  {"a": "Echo", "i": {"Message": "test"}, "p": 1024},
+  {"a": "Sleep", "i": {"SleepTimeInSeconds": 1}, "p": 2048},
+  {"c": [
+    {"a": "Echo", "i": {"Message": "nested"}, "p": 512}
   ]}
 ]
 ```
@@ -190,12 +203,12 @@ The worker provides the following activities for you to use during benchmarking:
 
 ### Sleep
 
-`Sleep({ SleepTimeInSeconds: int })`
+`Sleep({ SleepTimeInSeconds: int, Padding?: []byte })`
 
-This activity sleeps for the given number of seconds. It never returns an error. This can be used to simulate activities which take a while to complete.
+This activity sleeps for the given number of seconds. It never returns an error. This can be used to simulate activities which take a while to complete. The optional `Padding` field can be used to increase the size of the activity input in workflow history.
 
 ### Echo
 
-`Echo({ Message: string }) result`
+`Echo({ Message: string, Padding?: []byte }) result`
 
-This activity simply returns the message as it's result. This can be used for stress testing polling with activities that return instantly.
+This activity simply returns the message as it's result. This can be used for stress testing polling with activities that return instantly. The optional `Padding` field can be used to increase the size of the activity input in workflow history.

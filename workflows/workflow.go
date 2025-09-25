@@ -3,6 +3,7 @@ package workflows
 import (
 	"time"
 
+	"github.com/temporalio/benchmark-workers/activities"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -19,10 +20,31 @@ type ReceiveSignalWorkflowInput struct {
 
 // DSL step: either an activity or a child workflow (which is always this workflow)
 type DSLStep struct {
-	Activity string      `json:"a,omitempty"`
-	Input    interface{} `json:"i,omitempty"`
-	Child    []DSLStep   `json:"c,omitempty"`
-	Repeat   int         `json:"r,omitempty"`
+	Activity    string      `json:"a,omitempty"`
+	Input       interface{} `json:"i,omitempty"`
+	Child       []DSLStep   `json:"c,omitempty"`
+	Repeat      int         `json:"r,omitempty"`
+	PaddingSize int         `json:"p,omitempty"` // Size in bytes of padding to add to activity inputs
+}
+
+// injectPadding adds padding data to an activity input using the Paddable interface
+func injectPadding(input interface{}, paddingSize int) interface{} {
+	if paddingSize <= 0 {
+		return input
+	}
+
+	// Create padding data
+	padding := make([]byte, paddingSize)
+	for i := range padding {
+		padding[i] = byte(i % 256) // Fill with repeating byte pattern
+	}
+
+	// Use the clean interface-based approach
+	if paddable, ok := input.(activities.Paddable); ok {
+		paddable.SetPadding(padding)
+	}
+
+	return input
 }
 
 func ExecuteActivityWorkflow(ctx workflow.Context, input ExecuteActivityWorkflowInput) error {
@@ -67,7 +89,9 @@ func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 		}
 		for i := 0; i < repeat; i++ {
 			if step.Activity != "" {
-				if err := workflow.ExecuteActivity(ctx, step.Activity, step.Input).Get(ctx, nil); err != nil {
+				// Inject padding into the activity input if specified
+				activityInput := injectPadding(step.Input, step.PaddingSize)
+				if err := workflow.ExecuteActivity(ctx, step.Activity, activityInput).Get(ctx, nil); err != nil {
 					return err
 				}
 			}
