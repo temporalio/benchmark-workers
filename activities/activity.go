@@ -7,19 +7,8 @@ import (
 	"go.temporal.io/sdk/activity"
 )
 
-// Paddable interface allows activity inputs to support padding injection
-type Paddable interface {
-	SetPadding([]byte)
-}
-
 type SleepActivityInput struct {
 	SleepTimeInSeconds int
-	Padding            []byte `json:",omitempty"`
-}
-
-// SetPadding implements the Paddable interface
-func (s *SleepActivityInput) SetPadding(padding []byte) {
-	s.Padding = padding
 }
 
 func SleepActivity(ctx context.Context, input SleepActivityInput) error {
@@ -57,12 +46,6 @@ func SleepActivity(ctx context.Context, input SleepActivityInput) error {
 
 type EchoActivityInput struct {
 	Message string
-	Padding []byte `json:",omitempty"`
-}
-
-// SetPadding implements the Paddable interface
-func (e *EchoActivityInput) SetPadding(padding []byte) {
-	e.Padding = padding
 }
 
 func EchoActivity(ctx context.Context, input EchoActivityInput) (string, error) {

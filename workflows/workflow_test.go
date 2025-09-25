@@ -55,17 +55,17 @@ func TestDSLWorkflowWithPadding(t *testing.T) {
 	steps := []DSLStep{
 		{
 			Activity:    "Echo",
-			Input:       &activities.EchoActivityInput{Message: "test"},
+			Input:       map[string]interface{}{"Message": "test"},
 			PaddingSize: 100, // 100 bytes of padding
 		},
 		{
 			Activity:    "Sleep",
-			Input:       &activities.SleepActivityInput{SleepTimeInSeconds: 1},
+			Input:       map[string]interface{}{"SleepTimeInSeconds": 1},
 			PaddingSize: 50, // 50 bytes of padding
 		},
 		{
 			Activity: "Echo",
-			Input:    &activities.EchoActivityInput{Message: "no padding"},
+			Input:    map[string]interface{}{"Message": "no padding"},
 			// No PaddingSize specified
 		},
 	}
@@ -80,35 +80,32 @@ func TestDSLWorkflowWithPadding(t *testing.T) {
 }
 
 func TestInjectPadding(t *testing.T) {
-	// Test with EchoActivityInput
-	echoInput := &activities.EchoActivityInput{Message: "test"}
-	result := injectPadding(echoInput, 100)
+	// Test with map input (simulating JSON deserialization)
+	echoInput := map[string]interface{}{"Message": "test"}
+	injectPadding(echoInput, 100)
 
-	// Should return the same pointer
-	require.Same(t, echoInput, result)
-	// Should have padding set
-	require.Len(t, echoInput.Padding, 100, "Should have 100 bytes of padding")
+	// Should have padding added
+	require.Contains(t, echoInput, "Padding", "Should have Padding field added")
+	require.Len(t, echoInput["Padding"], 100, "Should have 100 bytes of padding")
 
-	// Test with SleepActivityInput
-	sleepInput := &activities.SleepActivityInput{SleepTimeInSeconds: 5}
-	result = injectPadding(sleepInput, 50)
+	// Test with sleep activity input
+	sleepInput := map[string]interface{}{"SleepTimeInSeconds": 5}
+	injectPadding(sleepInput, 50)
 
-	// Should return the same pointer
-	require.Same(t, sleepInput, result)
-	// Should have padding set
-	require.Len(t, sleepInput.Padding, 50, "Should have 50 bytes of padding")
+	// Should have padding added
+	require.Contains(t, sleepInput, "Padding", "Should have Padding field added")
+	require.Len(t, sleepInput["Padding"], 50, "Should have 50 bytes of padding")
 
 	// Test with zero padding
-	echoInputNoPadding := &activities.EchoActivityInput{Message: "no padding"}
-	result = injectPadding(echoInputNoPadding, 0)
+	echoInputNoPadding := map[string]interface{}{"Message": "no padding"}
+	injectPadding(echoInputNoPadding, 0)
 
-	// Should return the same pointer
-	require.Same(t, echoInputNoPadding, result)
-	// Should have no padding
-	require.Nil(t, echoInputNoPadding.Padding, "Should have no padding")
+	// Should not have padding added
+	require.NotContains(t, echoInputNoPadding, "Padding", "Should not have Padding field added")
 
-	// Test with non-Paddable input (should be returned unchanged)
-	nonPaddable := "not paddable"
-	result = injectPadding(nonPaddable, 100)
-	require.Equal(t, nonPaddable, result)
+	// Test with non-map input (should be unchanged - no panic)
+	nonMap := "not a map"
+	require.NotPanics(t, func() {
+		injectPadding(nonMap, 100)
+	}, "Should not panic with non-map input")
 }
