@@ -3,7 +3,7 @@ name: benchmark-workers
 description: A Helm chart for Temporal benchmark workers
 type: application
 version: 0.7.1
-appVersion: 1.6.0
+appVersion: 1.6.1
 maintainers:
   - name: Temporal
     url: https://temporal.io 
