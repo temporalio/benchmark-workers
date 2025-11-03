@@ -203,10 +203,9 @@ func main() {
 				wf, err := starter()
 				if err != nil {
 					log.Println("Unable to start workflow", err)
+					time.Sleep(500 * time.Millisecond) // slight delay to avoid overwhelming the server
 					return
 				}
-
-				time.Sleep(500 * time.Millisecond) // slight delay to avoid overwhelming the server
 
 				if waitForCompletion {
 					err = wf.Get(context.Background(), nil)
