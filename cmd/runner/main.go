@@ -31,7 +31,6 @@ var (
 	nmaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
 	nfactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
 	bBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
-	
 )
 
 // Track which flags were explicitly set
@@ -229,7 +228,7 @@ func main() {
 			if errorOccurred  && !backOff{
 				currentInterval *= factor
 
-				if currentInterval > maxInterval {
+				if currentInterval > maxInterval && maxInterval != 0{
 					log.Println("Unable to start workflow after retries", err)
 					os.Exit(1)
 				}
