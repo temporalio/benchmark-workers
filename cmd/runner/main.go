@@ -206,6 +206,8 @@ func main() {
 					return
 				}
 
+				time.Sleep(500 * time.Millisecond) // slight delay to avoid overwhelming the server
+
 				if waitForCompletion {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
