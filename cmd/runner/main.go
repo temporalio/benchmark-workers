@@ -19,7 +19,6 @@ import (
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"go.temporal.io/sdk/client"
-	"regexp"
 )
 
 var (
@@ -29,9 +28,12 @@ var (
 	bWait = flag.Bool("w", true, "wait for workflows to complete")
 	sNamespace = flag.String("n", "default", "namespace")
 	sTaskQueue = flag.String("tq", "benchmark", "task queue")
-
-	errorCheckIfErrorIsForStandbyError = regexp.MustCompile(`Namespace: .+ is active in cluster: .+, while current cluster .+ is a standby cluster.`)
+	nmaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
+	nfactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
+	bBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
+	
 )
+
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
 
@@ -101,6 +103,9 @@ func main() {
 	waitForCompletion := getBoolValue("w", "TEMPORAL_WAIT", *bWait, true)
 	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
+	backOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bBackoff, false)
+	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nmaxInterval, 60)
+	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nfactor, 2)
 
 	log.Printf("Using namespace: %s", namespace)
 
@@ -202,14 +207,14 @@ func main() {
 	}
 
 	go (func() {
+		var errorOccurred bool=false
+		currentInterval := 1
 		for {
 			pool.Submit(func() {
 				wf, err := starter()
 				if err != nil {
 					log.Println("Unable to start workflow", err)
-					if errorCheckIfErrorIsForStandbyError.MatchString(err.Error()) {
-						time.Sleep(1 * time.Second) // slight delay to avoid overwhelming the server
-					}
+					errorOccurred = true
 					return
 				}
 
@@ -221,6 +226,18 @@ func main() {
 					}
 				}
 			})
+			if errorOccurred  && !backOff{
+				currentInterval *= factor
+
+				if currentInterval > maxInterval {
+					log.Println("Unable to start workflow after retries", err)
+					os.Exit(1)
+				}
+
+				log.Printf("Waiting for %d seconds before retrying to start workflow...", currentInterval)
+				time.Sleep(time.Duration(currentInterval) * time.Second)
+				errorOccurred = false
+			}
 		}
 	})()
 
