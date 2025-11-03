@@ -19,15 +19,19 @@ import (
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"go.temporal.io/sdk/client"
+	"regexp"
 )
 
-var nWorkflows = flag.Int("c", 10, "concurrent workflows")
-var sWorkflow = flag.String("t", "", "workflow type")
-var sSignalType = flag.String("s", "", "signal type")
-var bWait = flag.Bool("w", true, "wait for workflows to complete")
-var sNamespace = flag.String("n", "default", "namespace")
-var sTaskQueue = flag.String("tq", "benchmark", "task queue")
+var (
+	nWorkflows  = flag.Int("c", 10, "concurrent workflows")
+	sWorkflow = flag.String("t", "", "workflow type")
+	sSignalType = flag.String("s", "", "signal type")
+	bWait = flag.Bool("w", true, "wait for workflows to complete")
+	sNamespace = flag.String("n", "default", "namespace")
+	sTaskQueue = flag.String("tq", "benchmark", "task queue")
 
+	errorCheckIfErrorIsForStandbyError = regexp.MustCompile(`Namespace: .+ is active in cluster: .+, while current cluster .+ is a standby cluster.`)
+)
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
 
@@ -203,7 +207,9 @@ func main() {
 				wf, err := starter()
 				if err != nil {
 					log.Println("Unable to start workflow", err)
-					time.Sleep(500 * time.Millisecond) // slight delay to avoid overwhelming the server
+					if errorCheckIfErrorIsForStandbyError.MatchString(err.Error()) {
+						time.Sleep(1 * time.Second) // slight delay to avoid overwhelming the server
+					}
 					return
 				}
 
