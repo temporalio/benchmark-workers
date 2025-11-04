@@ -30,7 +30,7 @@ var (
 	sTaskQueue = flag.String("tq", "benchmark", "task queue")
 	nmaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
 	nfactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
-	bBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
+	bDisableBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
 )
 
 // Track which flags were explicitly set
@@ -102,7 +102,7 @@ func main() {
 	waitForCompletion := getBoolValue("w", "TEMPORAL_WAIT", *bWait, true)
 	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
-	backOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bBackoff, false)
+	backOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bDisableBackoff, false)
 	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nmaxInterval, 60)
 	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nfactor, 2)
 
@@ -212,7 +212,8 @@ func main() {
 			pool.Submit(func() {
 				wf, err := starter()
 				if err != nil {
-					log.Println("Unable to start workflow", err)
+					// log.Println("Unable to start workflow", err)
+					fmt.Fprintf(os.Stderr, "Unable to start workflow: %v\n", err)
 					errorOccurred = true
 					return
 				}
@@ -221,19 +222,20 @@ func main() {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
 						log.Println("Workflow failed", err)
+						errorOccurred = true
 						return
 					}
 				}
+				if !errorOccurred {
+					currentInterval = 1
+				}
 			})
 			if errorOccurred  && !backOff{
-				currentInterval *= factor
-
-				if currentInterval > maxInterval && maxInterval != 0{
-					log.Println("Unable to start workflow after retries", err)
-					os.Exit(1)
+				if currentInterval < maxInterval && maxInterval != 0 {
+					currentInterval *= factor
 				}
 
-				log.Printf("Waiting for %d seconds before retrying to start workflow...", currentInterval)
+				fmt.Fprintln(os.Stderr, fmt.Sprintf("Waiting for %d seconds before retrying to start workflow...", currentInterval))
 				time.Sleep(time.Duration(currentInterval) * time.Second)
 				errorOccurred = false
 			}
