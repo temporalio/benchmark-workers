@@ -23,8 +23,8 @@ import (
 
 var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
-var nWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers (-1 = use default, 0 = disable)")
-var nActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use default, 0 = disable)")
+var nMaxWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers (-1 = use default, 0 = disable)")
+var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use default, 0 = disable)")
 
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
@@ -58,8 +58,8 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "\nEnvironment variables (used if flag not set):\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_NAMESPACE\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_TASK_QUEUE\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WORKFLOW_TASK_POLLERS\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_ACTIVITY_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_WORKFLOW_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_ACTIVITY_TASK_POLLERS\n")
 	}
 
 	flag.Parse()
@@ -76,8 +76,8 @@ func main() {
 	// Apply precedence: command line > environment variable > default
 	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
-	workflowPollers := getIntValue("wp", "TEMPORAL_WORKFLOW_TASK_POLLERS", *nWorkflowPollers, -1)
-	activityPollers := getIntValue("ap", "TEMPORAL_ACTIVITY_TASK_POLLERS", *nActivityPollers, -1)
+	maxWorkflowPollers := getIntValue("wp", "TEMPORAL_MAX_WORKFLOW_TASK_POLLERS", *nMaxWorkflowPollers, -1)
+	maxActivityPollers := getIntValue("ap", "TEMPORAL_MAX_ACTIVITY_TASK_POLLERS", *nMaxActivityPollers, -1)
 
 	log.Printf("Creating worker for namespace: %s", namespace)
 
@@ -134,12 +134,20 @@ func main() {
 
 	workerOptions := worker.Options{}
 
-	if workflowPollers >= 0 {
-		workerOptions.MaxConcurrentWorkflowTaskPollers = workflowPollers
+	if maxWorkflowPollers >= 0 {
+		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
+			MaximumNumberOfPollers: maxWorkflowPollers,
+		})
+	} else {
+		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
 	}
 
-	if activityPollers >= 0 {
-		workerOptions.MaxConcurrentActivityTaskPollers = activityPollers
+	if maxActivityPollers >= 0 {
+		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
+			MaximumNumberOfPollers: maxActivityPollers,
+		})
+	} else {
+		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
 	}
 
 	// TODO: Support more worker options

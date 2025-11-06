@@ -28,8 +28,8 @@ The table below lists the environment variables available and the relevant Tempo
 | TEMPORAL_TLS_CA | [ClientOptions.ConnectionOptions.TLS](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS CA Cert file |
 | TEMPORAL_NAMESPACE | [ClientOptions.Namespace](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ClientOptions) | The Temporal Namespace |
 | TEMPORAL_TASK_QUEUE | [TaskQueue](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/worker#New) | The Temporal Task Queue |
-| TEMPORAL_WORKFLOW_TASK_POLLERS | [WorkerOptions.MaxConcurrentWorkflowTaskPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#WorkerOptions) | Number of workflow task pollers |
-| TEMPORAL_ACTIVITY_TASK_POLLERS | [WorkerOptions.MaxConcurrentActivityTaskPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#WorkerOptions) | Number of activity task pollers |
+| TEMPORAL_MAX_WORKFLOW_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of workflow task pollers |
+| TEMPORAL_MAX_ACTIVITY_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of activity task pollers |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
 
 #### Kubernetes Deployment
@@ -43,9 +43,7 @@ kubectl run benchmark-worker --image ghcr.io/temporalio/benchmark-workers:main \
     --image-pull-policy Always \
     --env "TEMPORAL_GRPC_ENDPOINT=temporal-frontend.temporal:7233" \
     --env "TEMPORAL_NAMESPACE=default" \
-    --env "TEMPORAL_TASK_QUEUE=benchmark" \
-    --env "TEMPORAL_WORKFLOW_TASK_POLLERS=16" \
-    --env "TEMPORAL_ACTIVITY_TASK_POLLERS=8"
+    --env "TEMPORAL_TASK_QUEUE=benchmark"
 ```
 
 2. **Using the example deployment YAML**:
