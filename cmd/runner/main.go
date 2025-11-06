@@ -102,7 +102,7 @@ func main() {
 	waitForCompletion := getBoolValue("w", "TEMPORAL_WAIT", *bWait, true)
 	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
-	backOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bDisableBackoff, false)
+	disableBackOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bDisableBackoff, false)
 	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nmaxInterval, 60)
 	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nfactor, 2)
 
@@ -206,38 +206,53 @@ func main() {
 	}
 
 	go (func() {
-		var errorOccurred bool=false
 		currentInterval := 1
+		errChan := make(chan error, concurrentWorkflows)
+		
 		for {
 			pool.Submit(func() {
 				wf, err := starter()
 				if err != nil {
-					// log.Println("Unable to start workflow", err)
 					fmt.Fprintf(os.Stderr, "Unable to start workflow: %v\n", err)
-					errorOccurred = true
+					errChan <- err
 					return
 				}
-
+				
 				if waitForCompletion {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
 						log.Println("Workflow failed", err)
-						errorOccurred = true
+						errChan <- err
 						return
 					}
 				}
-				if !errorOccurred {
-					currentInterval = 1
-				}
+				
+				errChan <- nil
 			})
-			if errorOccurred  && !backOff{
-				if currentInterval < maxInterval && maxInterval != 0 {
-					currentInterval *= factor
+			
+			var lastErr error
+			drained := false
+			for {
+				select {
+				case err := <-errChan:
+					lastErr = err
+					drained = true
+				default:
+					goto checkError
 				}
-
-				fmt.Fprintln(os.Stderr, fmt.Sprintf("Waiting for %d seconds before retrying to start workflow...", currentInterval))
-				time.Sleep(time.Duration(currentInterval) * time.Second)
-				errorOccurred = false
+			}
+			
+		checkError:
+			if drained && lastErr != nil {
+				if !disableBackOff {
+					if currentInterval < maxInterval && maxInterval != 0 {
+						currentInterval *= factor
+					}
+					fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
+					time.Sleep(time.Duration(currentInterval) * time.Second)
+				}
+			} else if drained && lastErr == nil {
+				currentInterval = 1
 			}
 		}
 	})()
