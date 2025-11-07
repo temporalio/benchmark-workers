@@ -248,14 +248,14 @@ func main() {
 				continue
 			}
 			
-			if updated && lastErr != nil {
+			if lastErr != nil {
 				fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
 				time.Sleep(time.Duration(currentInterval) * time.Second)
 				nInterval := currentInterval * factor
 				if nInterval < maxInterval && maxInterval != 0 {
 					currentInterval *= factor
 				}
-			} else if updated && lastErr == nil {
+			} else if lastErr == nil {
 				currentInterval = 1
 			}
 		}
