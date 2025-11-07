@@ -109,6 +109,9 @@ The table below lists the environment variables available and the relevant Tempo
 | TEMPORAL_TLS_CERT | [ClientOptions.ConnectionOptions.TLS.Certificates](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS Cert file |
 | TEMPORAL_TLS_CA | [ClientOptions.ConnectionOptions.TLS](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS CA Cert file |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
+| TEMPORAL_DISABLE_ERROR_BACKOFF | n/a | Disable request expotential backoff on work request failure |
+| TEMPORAL_BACKOFF_MAX_INTERVAL | n/a | Sets the max interval (seconds) that can be reached by the backoff |
+| TEMPORAL_BACKOFF_FACTOR | n/a | Sets the factor the interval is multiplied by | 
 
 The runner is also configured via command line options:
 

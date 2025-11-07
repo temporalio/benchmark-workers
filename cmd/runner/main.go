@@ -28,8 +28,8 @@ var (
 	bWait = flag.Bool("w", true, "wait for workflows to complete")
 	sNamespace = flag.String("n", "default", "namespace")
 	sTaskQueue = flag.String("tq", "benchmark", "task queue")
-	nmaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
-	nfactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
+	nMaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
+	nFactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
 	bDisableBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
 )
 
@@ -103,8 +103,8 @@ func main() {
 	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
 	disableBackOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bDisableBackoff, false)
-	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nmaxInterval, 60)
-	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nfactor, 2)
+	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nMaxInterval, 60)
+	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nFactor, 2)
 
 	log.Printf("Using namespace: %s", namespace)
 
@@ -221,7 +221,7 @@ func main() {
 				if waitForCompletion {
 					err = wf.Get(context.Background(), nil)
 					if err != nil {
-						log.Println("Workflow failed", err)
+						fmt.Fprintf(os.Stderr, "Workflow failed: %v\n", err)
 						errChan <- err
 						return
 					}
@@ -231,27 +231,31 @@ func main() {
 			})
 			
 			var lastErr error
-			drained := false
+			updated := false
+			
+			drainLoop:
 			for {
 				select {
 				case err := <-errChan:
 					lastErr = err
-					drained = true
+					updated = true
 				default:
-					goto checkError
+					break drainLoop
 				}
 			}
 			
-		checkError:
-			if drained && lastErr != nil {
-				if !disableBackOff {
-					if currentInterval < maxInterval && maxInterval != 0 {
-						currentInterval *= factor
-					}
-					fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
-					time.Sleep(time.Duration(currentInterval) * time.Second)
+			if disableBackOff || !updated {
+				continue
+			}
+			
+			if updated && lastErr != nil {
+				fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
+				time.Sleep(time.Duration(currentInterval) * time.Second)
+				nInterval := currentInterval * factor
+				if nInterval < maxInterval && maxInterval != 0 {
+					currentInterval *= factor
 				}
-			} else if drained && lastErr == nil {
+			} else if updated && lastErr == nil {
 				currentInterval = 1
 			}
 		}
