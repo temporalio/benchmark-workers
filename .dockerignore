@@ -1,6 +1,40 @@
-.github
-.git
-charts/
-deployment.yaml
+# Build artifacts
 runner
 worker
+
+# Version control
+.git
+.gitignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Documentation
+*.md
+README*
+docs/
+
+# Tests
+*_test.go
+**/*_test.go
+
+# Development
+.env
+.env.*
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Kubernetes/Deployment
+charts/
+deployment.yaml
+kubernetes/
+
+# Project-specific
+Makefile
