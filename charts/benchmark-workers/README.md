@@ -59,8 +59,8 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `temporal.grpcEndpoint` | Temporal frontend endpoint | `temporal-frontend.temporal:7233` |
 | `temporal.namespace` | Temporal namespace | `default` |
 | `temporal.taskQueue` | Task queue name | `benchmark` |
-| `temporal.workflowTaskPollers` | Number of workflow task pollers | `16` |
-| `temporal.activityTaskPollers` | Number of activity task pollers | `8` |
+| `temporal.maxWorkflowTaskPollers` | Maximum workflow task pollers (poller auto-scaling cap) | SDK default |
+| `temporal.maxActivityTaskPollers` | Maximum activity task pollers (poller auto-scaling cap) | SDK default |
 | `temporal.tls.enabled` | Enable TLS | `false` |
 | `temporal.tls.key` | TLS key content (base64 encoded) | `""` |
 | `temporal.tls.cert` | TLS certificate content (base64 encoded) | `""` |
@@ -213,12 +213,11 @@ additionalEnv:
 
 ## Examples
 
-### Deploy workers with increased pollers
+### Deploy workers with higher activity poller auto-scaling cap
 
 ```bash
 helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.workflowTaskPollers=32 \
-  --set temporal.activityTaskPollers=16
+  --set temporal.maxActivityTaskPollers=150
 ```
 
 ### Deploy with a high load soak test

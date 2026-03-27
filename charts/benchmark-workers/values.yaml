@@ -12,9 +12,10 @@ temporal:
   grpcEndpoint: "temporal-frontend.temporal:7233"
   namespace: "default"
   taskQueue: "benchmark"
-  workflowTaskPollers: "16"
-  activityTaskPollers: "8"
-  
+  # Upper bound for poller auto-scaling (Temporal SDK PollerBehaviorAutoscaling).
+  # maxWorkflowTaskPollers: "150"
+  # maxActivityTaskPollers: "150"
+
   tls:
     enabled: false
     # Provide these values or use an existing Secret

@@ -39,10 +39,14 @@ spec:
           value: {{ .Values.temporal.namespace | quote }}
         - name: TEMPORAL_TASK_QUEUE
           value: {{ .Values.temporal.taskQueue | quote }}
-        - name: TEMPORAL_WORKFLOW_TASK_POLLERS
-          value: {{ .Values.temporal.workflowTaskPollers | quote }}
-        - name: TEMPORAL_ACTIVITY_TASK_POLLERS
-          value: {{ .Values.temporal.activityTaskPollers | quote }}
+        {{ with .Values.temporal.maxWorkflowTaskPollers }}
+        - name: TEMPORAL_MAX_WORKFLOW_TASK_POLLERS
+          value: {{ . | quote }}
+        {{- end }}
+        {{ with .Values.temporal.maxActivityTaskPollers }}
+        - name: TEMPORAL_MAX_ACTIVITY_TASK_POLLERS
+          value: {{ . | quote }}
+        {{- end }}
         {{- if .Values.metrics.enabled }}
         - name: PROMETHEUS_ENDPOINT
           value: {{ .Values.metrics.prometheusEndpoint | quote }}
