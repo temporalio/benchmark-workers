@@ -1,24 +1,27 @@
-# Temporal Benchmark Workers
+# Cadence Benchmark Workers
 
-This Helm chart deploys Temporal benchmark workers for load testing and performance evaluation of a Temporal cluster.
+This Helm chart deploys Cadence benchmark workers for load testing and performance evaluation of a Cadence cluster.
+
+It is the Cadence port of the Temporal `benchmark-workers` chart, published as a separate chart
+(`benchmark-workers-cadence`) so the two can be installed side by side for a comparative benchmark.
 
 ## TL;DR
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence
 ```
 
 ## Introduction
 
 This chart deploys two components:
-1. **Benchmark Workers**: Temporal workers that execute activities and workflows for benchmarking
+1. **Benchmark Workers**: Cadence workers that execute activities and workflows for benchmarking
 2. **Soak Test** (optional): A runner component that continuously creates workflows to generate load
 
 ## Prerequisites
 
 - Kubernetes 1.16+
 - Helm 3.8.0+
-- A running Temporal cluster accessible from the Kubernetes cluster
+- A running Cadence cluster accessible from the Kubernetes cluster (frontend reachable over gRPC)
 - (Optional) Prometheus Operator for ServiceMonitor support
 
 ## Installing the Chart
@@ -34,7 +37,7 @@ To install the chart from the GitHub Container Registry:
 # echo $GITHUB_TOKEN | helm registry login ghcr.io -u $GITHUB_USERNAME --password-stdin
 
 # Install the chart
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence
 ```
 
 ### From Local Chart
@@ -42,31 +45,31 @@ helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers
 To install the chart from a local clone of this repository:
 
 ```bash
-git clone https://github.com/temporalio/benchmark-workers.git
+git clone --branch cadence https://github.com/temporalio/benchmark-workers.git
 cd benchmark-workers
-helm install benchmark-workers ./charts/benchmark-workers
+helm install benchmark-workers-cadence ./charts/benchmark-workers-cadence
 ```
 
 ## Configuration
 
-The following table lists the configurable parameters for the benchmark-workers chart and their default values.
+The following table lists the configurable parameters for the benchmark-workers-cadence chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image.repository` | Image repository | `ghcr.io/temporalio/benchmark-workers` |
-| `image.tag` | Image tag | `latest` |
+| `image.repository` | Image repository | `ghcr.io/temporalio/benchmark-workers-cadence` |
+| `image.tag` | Image tag | appVersion from Chart.yaml |
 | `image.pullPolicy` | Image pull policy | `Always` |
-| `temporal.grpcEndpoint` | Temporal frontend endpoint | `temporal-frontend.temporal:7233` |
-| `temporal.namespace` | Temporal namespace | `default` |
-| `temporal.taskQueue` | Task queue name | `benchmark` |
-| `temporal.maxWorkflowTaskPollers` | Maximum workflow task pollers (poller auto-scaling cap) | SDK default |
-| `temporal.maxActivityTaskPollers` | Maximum activity task pollers (poller auto-scaling cap) | SDK default |
-| `temporal.tls.enabled` | Enable TLS | `false` |
-| `temporal.tls.key` | TLS key content (base64 encoded) | `""` |
-| `temporal.tls.cert` | TLS certificate content (base64 encoded) | `""` |
-| `temporal.tls.ca` | TLS CA certificate content (base64 encoded) | `""` |
-| `temporal.tls.existingSecret` | Use existing Kubernetes secret for TLS | `""` |
-| `temporal.tls.disableHostVerification` | Disable TLS host verification | `false` |
+| `cadence.grpcEndpoint` | Cadence frontend gRPC endpoint | `cadence-frontend.cadence:7833` |
+| `cadence.domain` | Cadence domain | `default` |
+| `cadence.taskList` | Task list name | `benchmark` |
+| `cadence.maxDecisionTaskPollers` | Fixed decision (workflow) task poller count | SDK default |
+| `cadence.maxActivityTaskPollers` | Fixed activity task poller count | SDK default |
+| `cadence.tls.enabled` | Enable TLS | `false` |
+| `cadence.tls.key` | TLS key content (base64 encoded) | `""` |
+| `cadence.tls.cert` | TLS certificate content (base64 encoded) | `""` |
+| `cadence.tls.ca` | TLS CA certificate content (base64 encoded) | `""` |
+| `cadence.tls.existingSecret` | Use existing Kubernetes secret for TLS | `""` |
+| `cadence.tls.disableHostVerification` | Disable TLS host verification | `false` |
 | `metrics.enabled` | Enable Prometheus metrics | `true` |
 | `metrics.port` | Port to expose metrics on | `9090` |
 | `metrics.prometheusEndpoint` | Prometheus metrics endpoint | `:9090` |
@@ -88,14 +91,17 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `tolerations` | Tolerations for pod assignment | `[]` |
 | `affinity` | Affinity for pod assignment | `{}` |
 
+> **Note:** Cadence has no poller auto-scaling. `cadence.maxDecisionTaskPollers` /
+> `cadence.maxActivityTaskPollers` set fixed poller counts; leave them unset to use the SDK default.
+
 ## TLS Configuration
 
-To use TLS, set `temporal.tls.enabled` to `true` and either:
+To use TLS, set `cadence.tls.enabled` to `true` and either:
 
 1. Provide the TLS materials in the values file (not recommended for production):
 
 ```yaml
-temporal:
+cadence:
   tls:
     enabled: true
     key: <base64-encoded-key>
@@ -106,7 +112,7 @@ temporal:
 2. Create a secret manually and reference it:
 
 ```bash
-kubectl create secret generic temporal-tls \
+kubectl create secret generic cadence-tls \
   --from-file=key=/path/to/key.pem \
   --from-file=cert=/path/to/cert.pem \
   --from-file=ca=/path/to/ca.pem
@@ -115,10 +121,10 @@ kubectl create secret generic temporal-tls \
 Then reference it in your values:
 
 ```yaml
-temporal:
+cadence:
   tls:
     enabled: true
-    existingSecret: "temporal-tls"
+    existingSecret: "cadence-tls"
 ```
 
 ## Prometheus Metrics Integration
@@ -175,90 +181,46 @@ additionalEnv:
       secretKeyRef:
         name: my-secret
         key: password
-  - name: API_KEY
-    valueFrom:
-      secretKeyRef:
-        name: api-credentials
-        key: api-key
-```
-
-### Environment Variables from ConfigMaps
-
-```yaml
-additionalEnv:
-  - name: APP_CONFIG
-    valueFrom:
-      configMapKeyRef:
-        name: app-config
-        key: config.json
-```
-
-### Mixed Environment Variables
-
-```yaml
-additionalEnv:
-  - name: ENVIRONMENT
-    value: "production"
-  - name: DATABASE_URL
-    valueFrom:
-      secretKeyRef:
-        name: database-credentials
-        key: url
-  - name: FEATURE_FLAGS
-    valueFrom:
-      configMapKeyRef:
-        name: feature-config
-        key: flags
 ```
 
 ## Examples
 
-### Deploy workers with higher activity poller auto-scaling cap
+### Deploy workers with a fixed activity poller count
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.maxActivityTaskPollers=150
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence \
+  --set cadence.maxActivityTaskPollers=150
 ```
 
 ### Deploy with a high load soak test
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence \
   --set soakTest.concurrentWorkflows=50
 ```
 
 ### Deploy with TLS enabled
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set temporal.tls.enabled=true \
-  --set-file temporal.tls.key=/path/to/key.pem \
-  --set-file temporal.tls.cert=/path/to/cert.pem \
-  --set-file temporal.tls.ca=/path/to/ca.pem
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence \
+  --set cadence.tls.enabled=true \
+  --set-file cadence.tls.key=/path/to/key.pem \
+  --set-file cadence.tls.cert=/path/to/cert.pem \
+  --set-file cadence.tls.ca=/path/to/ca.pem
 ```
 
 ### Deploy with Prometheus metrics enabled
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence \
   --set metrics.enabled=true \
   --set metrics.serviceMonitor.enabled=true
-```
-
-### Deploy with additional environment variables
-
-```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
-  --set additionalEnv[0].name=LOG_LEVEL \
-  --set additionalEnv[0].value=DEBUG \
-  --set additionalEnv[1].name=CUSTOM_SETTING \
-  --set additionalEnv[1].value=production-value
 ```
 
 ### Scale worker or soak test replicas
 
 ```bash
-helm install benchmark-workers oci://ghcr.io/temporalio/charts/benchmark-workers \
+helm install benchmark-workers-cadence oci://ghcr.io/temporalio/charts/benchmark-workers-cadence \
   --set workers.replicaCount=3 \
   --set soakTest.replicaCount=2
-``` 
+```

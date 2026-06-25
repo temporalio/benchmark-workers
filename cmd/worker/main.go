@@ -1,30 +1,26 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 
-	"github.com/temporalio/benchmark-workers/activities"
-	"github.com/temporalio/benchmark-workers/workflows"
-	"github.com/uber-go/tally/v4/prometheus"
-	sdktally "go.temporal.io/sdk/contrib/tally"
+	"github.com/temporalio/benchmark-workers-cadence/activities"
+	"github.com/temporalio/benchmark-workers-cadence/cadenceclient"
+	"github.com/temporalio/benchmark-workers-cadence/workflows"
 	"go.uber.org/automaxprocs/maxprocs"
 
-	"go.temporal.io/sdk/activity"
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
+	"go.uber.org/cadence/activity"
+	"go.uber.org/cadence/worker"
+	"go.uber.org/cadence/workflow"
 )
 
-var sNamespace = flag.String("n", "default", "namespace")
-var sTaskQueue = flag.String("tq", "benchmark", "task queue")
-var nMaxWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers (-1 = use default, 0 = disable)")
-var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use default, 0 = disable)")
+var sDomain = flag.String("n", "default", "domain")
+var sTaskList = flag.String("tq", "benchmark", "task list")
+var nMaxDecisionPollers = flag.Int("wp", -1, "max concurrent decision (workflow) task pollers (-1 = use Cadence default)")
+var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use Cadence default)")
 
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
@@ -56,10 +52,10 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags]\n", os.Args[0])
 		flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\nEnvironment variables (used if flag not set):\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_NAMESPACE\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_TASK_QUEUE\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_WORKFLOW_TASK_POLLERS\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_ACTIVITY_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  CADENCE_DOMAIN\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  CADENCE_TASK_LIST\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  CADENCE_MAX_DECISION_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  CADENCE_MAX_ACTIVITY_TASK_POLLERS\n")
 	}
 
 	flag.Parse()
@@ -74,85 +70,46 @@ func main() {
 	}
 
 	// Apply precedence: command line > environment variable > default
-	namespace := getStringValue("n", "TEMPORAL_NAMESPACE", *sNamespace, "default")
-	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
-	maxWorkflowPollers := getIntValue("wp", "TEMPORAL_MAX_WORKFLOW_TASK_POLLERS", *nMaxWorkflowPollers, -1)
-	maxActivityPollers := getIntValue("ap", "TEMPORAL_MAX_ACTIVITY_TASK_POLLERS", *nMaxActivityPollers, -1)
+	domain := getStringValue("n", "CADENCE_DOMAIN", *sDomain, "default")
+	taskList := getStringValue("tq", "CADENCE_TASK_LIST", *sTaskList, "benchmark")
+	maxDecisionPollers := getIntValue("wp", "CADENCE_MAX_DECISION_TASK_POLLERS", *nMaxDecisionPollers, -1)
+	maxActivityPollers := getIntValue("ap", "CADENCE_MAX_ACTIVITY_TASK_POLLERS", *nMaxActivityPollers, -1)
 
-	log.Printf("Creating worker for namespace: %s", namespace)
+	log.Printf("Creating worker for domain: %s", domain)
 
-	clientOptions := client.Options{
-		HostPort:  os.Getenv("TEMPORAL_GRPC_ENDPOINT"),
-		Namespace: namespace,
-	}
-
-	tlsKeyPath := os.Getenv("TEMPORAL_TLS_KEY")
-	tlsCertPath := os.Getenv("TEMPORAL_TLS_CERT")
-	tlsCaPath := os.Getenv("TEMPORAL_TLS_CA")
-
-	if tlsKeyPath != "" && tlsCertPath != "" {
-		tlsConfig := tls.Config{}
-
-		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
-		if err != nil {
-			log.Fatalf("Unable to create key pair for TLS: %v", err)
-		}
-
-		var tlsCaPool *x509.CertPool
-		if tlsCaPath != "" {
-			tlsCaPool = x509.NewCertPool()
-			b, err := os.ReadFile(tlsCaPath)
-			if err != nil {
-				log.Fatalf("Failed reading server CA: %v", err)
-			} else if !tlsCaPool.AppendCertsFromPEM(b) {
-				log.Fatalf("Server CA PEM file invalid")
-			}
-		}
-
-		tlsConfig.Certificates = []tls.Certificate{cert}
-		tlsConfig.RootCAs = tlsCaPool
-
-		if os.Getenv("TEMPORAL_TLS_DISABLE_HOST_VERIFICATION") != "" {
-			tlsConfig.InsecureSkipVerify = true
-		}
-
-		clientOptions.ConnectionOptions.TLS = &tlsConfig
-	}
-
-	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
-		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
-			ListenAddress: os.Getenv("PROMETHEUS_ENDPOINT"),
-			TimerType:     "histogram",
-		}))
-	}
-
-	c, err := client.Dial(clientOptions)
+	conn, err := cadenceclient.Dial(cadenceclient.Config{
+		HostPort:                   os.Getenv("CADENCE_GRPC_ENDPOINT"),
+		Domain:                     domain,
+		Identity:                   "benchmark-worker",
+		TLSKeyPath:                 os.Getenv("CADENCE_TLS_KEY"),
+		TLSCertPath:                os.Getenv("CADENCE_TLS_CERT"),
+		TLSCAPath:                  os.Getenv("CADENCE_TLS_CA"),
+		TLSDisableHostVerification: os.Getenv("CADENCE_TLS_DISABLE_HOST_VERIFICATION") != "",
+		PrometheusEndpoint:         os.Getenv("PROMETHEUS_ENDPOINT"),
+	})
 	if err != nil {
 		log.Fatalf("Unable to create client: %v", err)
 	}
-	defer c.Close()
+	defer conn.Close()
 
-	workerOptions := worker.Options{}
-
-	if maxWorkflowPollers >= 0 {
-		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
-			MaximumNumberOfPollers: maxWorkflowPollers,
-		})
-	} else {
-		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
+	workerOptions := worker.Options{
+		MetricsScope: conn.Scope,
+		Logger:       conn.Logger,
 	}
 
-	if maxActivityPollers >= 0 {
-		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
-			MaximumNumberOfPollers: maxActivityPollers,
-		})
-	} else {
-		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
+	// Cadence has no poller auto-scaling; these set a fixed poller count.
+	// A value <= 0 leaves the Cadence SDK default in place.
+	if maxDecisionPollers > 0 {
+		workerOptions.MaxConcurrentDecisionTaskPollers = maxDecisionPollers
+	}
+	if maxActivityPollers > 0 {
+		workerOptions.MaxConcurrentActivityTaskPollers = maxActivityPollers
 	}
 
-	// TODO: Support more worker options
-
-	w := worker.New(c, taskQueue, workerOptions)
+	w, err := worker.NewV2(conn.Service, domain, taskList, workerOptions)
+	if err != nil {
+		log.Fatalf("Unable to create worker: %v", err)
+	}
 
 	w.RegisterWorkflowWithOptions(workflows.ExecuteActivityWorkflow, workflow.RegisterOptions{Name: "ExecuteActivity"})
 	w.RegisterWorkflowWithOptions(workflows.ReceiveSignalWorkflow, workflow.RegisterOptions{Name: "ReceiveSignal"})
@@ -160,9 +117,9 @@ func main() {
 	w.RegisterActivityWithOptions(activities.SleepActivity, activity.RegisterOptions{Name: "Sleep"})
 	w.RegisterActivityWithOptions(activities.EchoActivity, activity.RegisterOptions{Name: "Echo"})
 
-	log.Printf("Starting worker for namespace: %s", namespace)
-	err = w.Run(worker.InterruptCh())
-	if err != nil {
+	log.Printf("Starting worker for domain: %s", domain)
+	// Run blocks until the worker is interrupted (SIGINT/SIGTERM).
+	if err := w.Run(); err != nil {
 		log.Fatalf("Worker failed: %v", err)
 	}
 }

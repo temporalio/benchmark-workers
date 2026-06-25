@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go.temporal.io/sdk/activity"
+	"go.uber.org/cadence/activity"
 )
 
 type SleepActivityInput struct {

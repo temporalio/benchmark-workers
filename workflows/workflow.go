@@ -3,7 +3,7 @@ package workflows
 import (
 	"time"
 
-	"go.temporal.io/sdk/workflow"
+	"go.uber.org/cadence/workflow"
 )
 
 type ExecuteActivityWorkflowInput struct {
@@ -46,7 +46,10 @@ func injectPadding(input interface{}, paddingSize int) {
 
 func ExecuteActivityWorkflow(ctx workflow.Context, input ExecuteActivityWorkflowInput) error {
 	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 1 * time.Minute,
+		// Cadence requires both timeouts to be set explicitly (unlike the
+		// Temporal SDK, which defaults ScheduleToStartTimeout).
+		ScheduleToStartTimeout: 1 * time.Minute,
+		StartToCloseTimeout:    1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
@@ -75,7 +78,10 @@ func ReceiveSignalWorkflow(ctx workflow.Context, input ReceiveSignalWorkflowInpu
 // DSLWorkflow executes a list of DSLStep instructions.
 func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: 1 * time.Minute,
+		// Cadence requires both timeouts to be set explicitly (unlike the
+		// Temporal SDK, which defaults ScheduleToStartTimeout).
+		ScheduleToStartTimeout: 1 * time.Minute,
+		StartToCloseTimeout:    1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
@@ -93,7 +99,13 @@ func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 				}
 			}
 			if len(step.Child) > 0 {
-				if err := workflow.ExecuteChildWorkflow(ctx, DSLWorkflow, step.Child).Get(ctx, nil); err != nil {
+				// Cadence requires child workflow timeouts to be set explicitly.
+				cwo := workflow.ChildWorkflowOptions{
+					ExecutionStartToCloseTimeout: 1 * time.Hour,
+					TaskStartToCloseTimeout:      10 * time.Second,
+				}
+				childCtx := workflow.WithChildOptions(ctx, cwo)
+				if err := workflow.ExecuteChildWorkflow(childCtx, DSLWorkflow, step.Child).Get(childCtx, nil); err != nil {
 					return err
 				}
 			}

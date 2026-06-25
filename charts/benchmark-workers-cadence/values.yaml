@@ -1,19 +1,19 @@
-# Default values for benchmark-workers chart
+# Default values for benchmark-workers-cadence chart
 nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: ghcr.io/temporalio/benchmark-workers
+  repository: ghcr.io/temporalio/benchmark-workers-cadence
   # Default to appVersion from Chart.yaml
   tag: ""
   pullPolicy: Always
 
-temporal:
-  grpcEndpoint: "temporal-frontend.temporal:7233"
-  namespace: "default"
-  taskQueue: "benchmark"
-  # Upper bound for poller auto-scaling (Temporal SDK PollerBehaviorAutoscaling).
-  # maxWorkflowTaskPollers: "150"
+cadence:
+  grpcEndpoint: "cadence-frontend.cadence:7833"
+  domain: "default"
+  taskList: "benchmark"
+  # Fixed poller counts (Cadence has no poller auto-scaling). Unset = SDK default.
+  # maxDecisionTaskPollers: "150"
   # maxActivityTaskPollers: "150"
 
   tls:

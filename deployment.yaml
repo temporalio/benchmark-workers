@@ -4,7 +4,7 @@ metadata:
   labels:
     app: benchmark
     component: workers
-  name: benchmark-workers
+  name: benchmark-workers-cadence
 spec:
   replicas: 1
   selector:
@@ -18,19 +18,19 @@ spec:
         component: workers
     spec:
       containers:
-      - image: ghcr.io/temporalio/benchmark-workers:latest
+      - image: ghcr.io/temporalio/benchmark-workers-cadence:latest
         imagePullPolicy: Always
         name: benchmark-workers
         env:
-        - name: TEMPORAL_GRPC_ENDPOINT
-          value: "temporal-frontend.temporal:7233"
-        - name: TEMPORAL_NAMESPACE
+        - name: CADENCE_GRPC_ENDPOINT
+          value: "cadence-frontend.cadence:7833"
+        - name: CADENCE_DOMAIN
           value: "default"
-        - name: TEMPORAL_TASK_QUEUE
+        - name: CADENCE_TASK_LIST
           value: "benchmark"
-        - name: TEMPORAL_WORKFLOW_TASK_POLLERS
+        - name: CADENCE_MAX_DECISION_TASK_POLLERS
           value: "16"
-        - name: TEMPORAL_ACTIVITY_TASK_POLLERS
+        - name: CADENCE_MAX_ACTIVITY_TASK_POLLERS
           value: "8"
       restartPolicy: Always
 ---
@@ -40,7 +40,7 @@ metadata:
   labels:
     app: benchmark
     component: soak-test
-  name: benchmark-soak-test
+  name: benchmark-soak-test-cadence
 spec:
   replicas: 1
   selector:
@@ -54,15 +54,15 @@ spec:
         component: soak-test
     spec:
       containers:
-      - image: ghcr.io/temporalio/benchmark-workers:latest
+      - image: ghcr.io/temporalio/benchmark-workers-cadence:latest
         imagePullPolicy: Always
         name: benchmark-soak-test
         env:
-        - name: TEMPORAL_GRPC_ENDPOINT
-          value: "temporal-frontend.temporal:7233"
-        - name: TEMPORAL_NAMESPACE
+        - name: CADENCE_GRPC_ENDPOINT
+          value: "cadence-frontend.cadence:7833"
+        - name: CADENCE_DOMAIN
           value: "default"
-        - name: TEMPORAL_TASK_QUEUE
+        - name: CADENCE_TASK_LIST
           value: "benchmark"
         - name: CONCURRENT_WORKFLOWS
           value: "10"

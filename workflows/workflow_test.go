@@ -4,18 +4,20 @@ import (
 	"context"
 	"testing"
 
-	"github.com/temporalio/benchmark-workers/activities"
+	"github.com/temporalio/benchmark-workers-cadence/activities"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.temporal.io/sdk/activity"
-	"go.temporal.io/sdk/testsuite"
+	"go.uber.org/cadence/activity"
+	"go.uber.org/cadence/testsuite"
 )
 
 func TestDSLWorkflow(t *testing.T) {
 	ts := &testsuite.WorkflowTestSuite{}
 	env := ts.NewTestWorkflowEnvironment()
 
+	// DSLWorkflow runs itself as a child workflow, so it must be registered.
+	env.RegisterWorkflow(DSLWorkflow)
 	env.RegisterActivityWithOptions(activities.EchoActivity, activity.RegisterOptions{Name: "Echo"})
 	var echoCount int
 	env.OnActivity("Echo", mock.Anything, mock.Anything).Return(func(ctx context.Context, input activities.EchoActivityInput) (string, error) {
@@ -41,6 +43,7 @@ func TestDSLWorkflowWithPadding(t *testing.T) {
 	ts := &testsuite.WorkflowTestSuite{}
 	env := ts.NewTestWorkflowEnvironment()
 
+	env.RegisterWorkflow(DSLWorkflow)
 	env.RegisterActivityWithOptions(activities.EchoActivity, activity.RegisterOptions{Name: "Echo"})
 	env.RegisterActivityWithOptions(activities.SleepActivity, activity.RegisterOptions{Name: "Sleep"})
 

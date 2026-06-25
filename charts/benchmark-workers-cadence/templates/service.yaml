@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "benchmark-workers.fullname" . }}
+  name: {{ include "benchmark-workers-cadence.fullname" . }}
   labels:
     app: benchmark
-    {{- include "benchmark-workers.labels" . | nindent 4 }}
+    {{- include "benchmark-workers-cadence.labels" . | nindent 4 }}
   {{- with .Values.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -20,5 +20,5 @@ spec:
       name: metrics
   selector:
     app: benchmark
-    {{- include "benchmark-workers.selectorLabels" . | nindent 4 }}
+    {{- include "benchmark-workers-cadence.selectorLabels" . | nindent 4 }}
 {{- end }} 

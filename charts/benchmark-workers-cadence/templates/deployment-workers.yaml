@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "benchmark-workers-cadence.fullname" . }}-workers
+  labels:
+    app: benchmark
+    component: workers
+    {{- include "benchmark-workers-cadence.labels" . | nindent 4 }}
+spec:
+  strategy:
+    type: Recreate
+  replicas: {{ .Values.workers.replicaCount }}
+  selector:
+    matchLabels:
+      app: benchmark
+      component: workers
+      {{- include "benchmark-workers-cadence.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: benchmark
+        component: workers
+        {{- include "benchmark-workers-cadence.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: benchmark-workers
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.metrics.enabled }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        {{- end }}
+        env:
+        - name: CADENCE_GRPC_ENDPOINT
+          value: {{ .Values.cadence.grpcEndpoint | quote }}
+        - name: CADENCE_DOMAIN
+          value: {{ .Values.cadence.domain | quote }}
+        - name: CADENCE_TASK_LIST
+          value: {{ .Values.cadence.taskList | quote }}
+        {{ with .Values.cadence.maxDecisionTaskPollers }}
+        - name: CADENCE_MAX_DECISION_TASK_POLLERS
+          value: {{ . | quote }}
+        {{- end }}
+        {{ with .Values.cadence.maxActivityTaskPollers }}
+        - name: CADENCE_MAX_ACTIVITY_TASK_POLLERS
+          value: {{ . | quote }}
+        {{- end }}
+        {{- if .Values.metrics.enabled }}
+        - name: PROMETHEUS_ENDPOINT
+          value: {{ .Values.metrics.prometheusEndpoint | quote }}
+        {{- end }}
+        {{- if .Values.cadence.tls.enabled }}
+        {{- if and .Values.cadence.tls.key .Values.cadence.tls.cert }}
+        - name: CADENCE_TLS_KEY
+          value: {{ .Values.cadence.tls.key | quote }}
+        - name: CADENCE_TLS_CERT
+          value: {{ .Values.cadence.tls.cert | quote }}
+        {{- if .Values.cadence.tls.ca }}
+        - name: CADENCE_TLS_CA
+          value: {{ .Values.cadence.tls.ca | quote }}
+        {{- end }}
+        {{- else }}
+        - name: CADENCE_TLS_KEY
+          value: "/etc/cadence/tls/key"
+        - name: CADENCE_TLS_CERT
+          value: "/etc/cadence/tls/cert"
+        - name: CADENCE_TLS_CA
+          value: "/etc/cadence/tls/ca"
+        {{- end }}
+        {{- if .Values.cadence.tls.disableHostVerification }}
+        - name: CADENCE_TLS_DISABLE_HOST_VERIFICATION
+          value: "true"
+        {{- end }}
+        {{- end }}
+        {{- if .Values.additionalEnv }}
+        {{- toYaml .Values.additionalEnv | nindent 8 }}
+        {{- end }}
+        {{- if .Values.workers.resources }}
+        resources:
+          {{- toYaml .Values.workers.resources | nindent 10 }}
+        {{- end }}
+        {{- if and .Values.cadence.tls.enabled (not (and .Values.cadence.tls.key .Values.cadence.tls.cert)) }}
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/cadence/tls
+          readOnly: true
+        {{- end }}
+      {{- if and .Values.cadence.tls.enabled (not (and .Values.cadence.tls.key .Values.cadence.tls.cert)) }}
+      volumes:
+      - name: tls
+        secret:
+          secretName: {{ if .Values.cadence.tls.existingSecret }}{{ .Values.cadence.tls.existingSecret }}{{ else }}{{ include "benchmark-workers-cadence.fullname" . }}-tls{{ end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always

@@ -1,14 +1,18 @@
 name: Docker
 on:
   push:
-    branches: ["main"]
-    # Publish semver tags as releases.
-    tags: ['v*.*.*']
+    branches: ["cadence"]
+    # Cadence releases use a distinct tag prefix. Git tags share one namespace
+    # across the whole repo, so this avoids colliding with the Temporal `v*`
+    # release tags on main. The two filters are disjoint: `cadence-v*` never
+    # matches `v*.*.*` and vice versa, so each tag triggers exactly one workflow.
+    tags: ['cadence-v*.*.*']
   pull_request:
-    branches: ["main"]
+    branches: ["cadence"]
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # Published distinctly from the Temporal image so the two can coexist.
+  IMAGE_NAME: temporalio/benchmark-workers-cadence
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -32,6 +36,15 @@ jobs:
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Strip the `cadence-v` prefix so release tag cadence-v1.2.3 produces
+          # image tags 1.2.3 / 1.2 / 1 / latest. Branch pushes produce `cadence`.
+          tags: |
+            type=match,pattern=cadence-v(\d+\.\d+\.\d+),group=1
+            type=match,pattern=cadence-v(\d+\.\d+),group=1
+            type=match,pattern=cadence-v(\d+),group=1
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/cadence-v') }}
+            type=ref,event=branch
+            type=ref,event=pr
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:

@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "benchmark-workers.name" -}}
+{{- define "benchmark-workers-cadence.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "benchmark-workers.fullname" -}}
+{{- define "benchmark-workers-cadence.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "benchmark-workers.chart" -}}
+{{- define "benchmark-workers-cadence.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "benchmark-workers.labels" -}}
-helm.sh/chart: {{ include "benchmark-workers.chart" . }}
-{{ include "benchmark-workers.selectorLabels" . }}
+{{- define "benchmark-workers-cadence.labels" -}}
+helm.sh/chart: {{ include "benchmark-workers-cadence.chart" . }}
+{{ include "benchmark-workers-cadence.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -46,8 +46,8 @@ app: benchmark
 {{/*
 Selector labels
 */}}
-{{- define "benchmark-workers.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "benchmark-workers.name" . }}
+{{- define "benchmark-workers-cadence.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "benchmark-workers-cadence.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app: benchmark
 {{- end }} 
