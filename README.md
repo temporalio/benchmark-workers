@@ -28,8 +28,10 @@ The table below lists the environment variables available and the relevant Tempo
 | TEMPORAL_TLS_CA | [ClientOptions.ConnectionOptions.TLS](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ConnectionOptions) | Path to TLS CA Cert file |
 | TEMPORAL_NAMESPACE | [ClientOptions.Namespace](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/internal#ClientOptions) | The Temporal Namespace |
 | TEMPORAL_TASK_QUEUE | [TaskQueue](https://pkg.go.dev/go.temporal.io/sdk@v1.15.0/worker#New) | The Temporal Task Queue |
-| TEMPORAL_MAX_WORKFLOW_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of workflow task pollers |
-| TEMPORAL_MAX_ACTIVITY_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of activity task pollers |
+| TEMPORAL_MAX_WORKFLOW_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of workflow task pollers when auto-scaling |
+| TEMPORAL_MAX_ACTIVITY_TASK_POLLERS | [PollerBehaviorAutoscalingOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorAutoscalingOptions) | Maximum number of activity task pollers when auto-scaling |
+| TEMPORAL_WORKFLOW_TASK_POLLERS | [PollerBehaviorSimpleMaximumOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorSimpleMaximumOptions) | Fixed number of workflow task pollers (disables auto-scaling, takes precedence over TEMPORAL_MAX_WORKFLOW_TASK_POLLERS) |
+| TEMPORAL_ACTIVITY_TASK_POLLERS | [PollerBehaviorSimpleMaximumOptions.MaximumNumberOfPollers](https://pkg.go.dev/go.temporal.io/sdk@v1.37.0/internal#PollerBehaviorSimpleMaximumOptions) | Fixed number of activity task pollers (disables auto-scaling, takes precedence over TEMPORAL_MAX_ACTIVITY_TASK_POLLERS) |
 | PROMETHEUS_ENDPOINT | n/a | The address to serve prometheus metrics on |
 
 #### Kubernetes Deployment
