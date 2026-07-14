@@ -23,8 +23,10 @@ import (
 
 var sNamespace = flag.String("n", "default", "namespace")
 var sTaskQueue = flag.String("tq", "benchmark", "task queue")
-var nMaxWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers (-1 = use default, 0 = disable)")
-var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers (-1 = use default, 0 = disable)")
+var nMaxWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task pollers for autoscaling (-1 = use default)")
+var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers for autoscaling (-1 = use default)")
+var nWorkflowPollers = flag.Int("wpf", -1, "fixed number of workflow task pollers, disables autoscaling (-1 = use default)")
+var nActivityPollers = flag.Int("apf", -1, "fixed number of activity task pollers, disables autoscaling (-1 = use default)")
 
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
@@ -51,6 +53,27 @@ func getIntValue(flagName, envName string, flagValue, defaultValue int) int {
 	return defaultValue
 }
 
+// pollerBehavior selects the poller behavior for a task type. A fixed poller
+// count (PollerBehaviorSimpleMaximum) takes precedence over the autoscaling
+// maximum (PollerBehaviorAutoscaling). If neither is set the SDK default
+// behavior is used.
+func pollerBehavior(kind string, fixed, max int) worker.PollerBehavior {
+	if fixed >= 0 {
+		if max >= 0 {
+			log.Printf("WARNING: both fixed and max %s task pollers set, using fixed count of %d.\n", kind, fixed)
+		}
+		return worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{
+			MaximumNumberOfPollers: fixed,
+		})
+	}
+	if max >= 0 {
+		return worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
+			MaximumNumberOfPollers: max,
+		})
+	}
+	return worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags]\n", os.Args[0])
@@ -60,6 +83,8 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_TASK_QUEUE\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_WORKFLOW_TASK_POLLERS\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_ACTIVITY_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WORKFLOW_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_ACTIVITY_TASK_POLLERS\n")
 	}
 
 	flag.Parse()
@@ -78,6 +103,8 @@ func main() {
 	taskQueue := getStringValue("tq", "TEMPORAL_TASK_QUEUE", *sTaskQueue, "benchmark")
 	maxWorkflowPollers := getIntValue("wp", "TEMPORAL_MAX_WORKFLOW_TASK_POLLERS", *nMaxWorkflowPollers, -1)
 	maxActivityPollers := getIntValue("ap", "TEMPORAL_MAX_ACTIVITY_TASK_POLLERS", *nMaxActivityPollers, -1)
+	workflowPollers := getIntValue("wpf", "TEMPORAL_WORKFLOW_TASK_POLLERS", *nWorkflowPollers, -1)
+	activityPollers := getIntValue("apf", "TEMPORAL_ACTIVITY_TASK_POLLERS", *nActivityPollers, -1)
 
 	log.Printf("Creating worker for namespace: %s", namespace)
 
@@ -134,21 +161,8 @@ func main() {
 
 	workerOptions := worker.Options{}
 
-	if maxWorkflowPollers >= 0 {
-		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
-			MaximumNumberOfPollers: maxWorkflowPollers,
-		})
-	} else {
-		workerOptions.WorkflowTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
-	}
-
-	if maxActivityPollers >= 0 {
-		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorAutoscaling(worker.PollerBehaviorAutoscalingOptions{
-			MaximumNumberOfPollers: maxActivityPollers,
-		})
-	} else {
-		workerOptions.ActivityTaskPollerBehavior = worker.NewPollerBehaviorSimpleMaximum(worker.PollerBehaviorSimpleMaximumOptions{})
-	}
+	workerOptions.WorkflowTaskPollerBehavior = pollerBehavior("workflow", workflowPollers, maxWorkflowPollers)
+	workerOptions.ActivityTaskPollerBehavior = pollerBehavior("activity", activityPollers, maxActivityPollers)
 
 	// TODO: Support more worker options
 

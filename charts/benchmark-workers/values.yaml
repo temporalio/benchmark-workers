@@ -15,6 +15,10 @@ temporal:
   # Upper bound for poller auto-scaling (Temporal SDK PollerBehaviorAutoscaling).
   # maxWorkflowTaskPollers: "150"
   # maxActivityTaskPollers: "150"
+  # Fixed number of pollers (Temporal SDK PollerBehaviorSimpleMaximum). Setting
+  # these disables poller auto-scaling and takes precedence over the max* values.
+  # workflowTaskPollers: "16"
+  # activityTaskPollers: "8"
 
   tls:
     enabled: false
