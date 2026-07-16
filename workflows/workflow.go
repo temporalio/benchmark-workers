@@ -17,13 +17,15 @@ type ReceiveSignalWorkflowInput struct {
 	Name  string
 }
 
-// DSL step: either an activity or a child workflow (which is always this workflow)
+// DSL step: an activity, a child workflow (which is always this workflow),
+// and/or a durable-timer sleep.
 type DSLStep struct {
-	Activity    string      `json:"a,omitempty"`
-	Input       interface{} `json:"i,omitempty"`
-	Child       []DSLStep   `json:"c,omitempty"`
-	Repeat      int         `json:"r,omitempty"`
-	PaddingSize int         `json:"p,omitempty"` // Size in bytes of padding to add to activity inputs
+	Activity     string      `json:"a,omitempty"`
+	Input        interface{} `json:"i,omitempty"`
+	Child        []DSLStep   `json:"c,omitempty"`
+	Repeat       int         `json:"r,omitempty"`
+	PaddingSize  int         `json:"p,omitempty"` // Size in bytes of padding to add to activity inputs
+	SleepSeconds int         `json:"t,omitempty"` // Seconds to sleep via a durable timer (workflow.Sleep), not the Sleep activity
 }
 
 // injectPadding adds padding data to an activity input by adding a Padding field
@@ -85,6 +87,11 @@ func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 			repeat = 1
 		}
 		for i := 0; i < repeat; i++ {
+			if step.SleepSeconds > 0 {
+				if err := workflow.Sleep(ctx, time.Duration(step.SleepSeconds)*time.Second); err != nil {
+					return err
+				}
+			}
 			if step.Activity != "" {
 				// Inject padding into the activity input if specified
 				injectPadding(step.Input, step.PaddingSize)
