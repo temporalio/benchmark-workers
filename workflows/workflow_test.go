@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/temporalio/benchmark-workers-cadence/activities"
 
@@ -37,6 +38,33 @@ func TestDSLWorkflow(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.NoError(t, env.GetWorkflowError())
 	require.Equal(t, 6, echoCount, "Echo activity should be called 6 times")
+}
+
+func TestDSLWorkflowWithTimerSleep(t *testing.T) {
+	ts := &testsuite.WorkflowTestSuite{}
+	env := ts.NewTestWorkflowEnvironment()
+
+	env.RegisterActivityWithOptions(activities.EchoActivity, activity.RegisterOptions{Name: "Echo"})
+	var echoCount int
+	env.OnActivity("Echo", mock.Anything, mock.Anything).Return(func(ctx context.Context, input activities.EchoActivityInput) (string, error) {
+		echoCount++
+		return input.Message, nil
+	})
+
+	steps := []DSLStep{
+		{SleepSeconds: 2, Repeat: 3},
+		{Activity: "Echo", Input: map[string]interface{}{"Message": "test"}},
+	}
+
+	startTime := env.Now()
+	env.ExecuteWorkflow(DSLWorkflow, steps)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	require.Equal(t, 1, echoCount, "Echo activity should be called once")
+	// The timer sleeps run via workflow.Sleep (durable timers) and are
+	// fast-forwarded by the test env's time skipping: 3 repeats * 2s.
+	require.Equal(t, 6*time.Second, env.Now().Sub(startTime))
 }
 
 func TestDSLWorkflowWithPadding(t *testing.T) {
