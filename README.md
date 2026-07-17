@@ -168,6 +168,7 @@ Each step can have the following fields:
 - `c`: (array of steps, optional) Child steps to execute as a child workflow
 - `r`: (int, optional) Number of times to repeat this step (default 1)
 - `p`: (int, optional) Size in bytes of padding data to add to activity inputs for increasing history size
+- `t`: (int, optional) Seconds to sleep via a durable timer (`workflow.Sleep`) instead of the `Sleep` activity. A value of 0 (the default) is a no-op.
 
 #### Examples
 
@@ -191,6 +192,16 @@ This example demonstrates using padding to increase history size by adding paddi
   {"c": [
     {"a": "Echo", "i": {"Message": "nested"}, "p": 512}
   ]}
+]
+```
+
+This example sleeps for 1 second using a durable timer (`workflow.Sleep`, no activity), runs `Echo`, then sleeps 5 seconds:
+
+```
+[
+  {"t": 1},
+  {"a": "Echo", "i": {"Message": "test"}},
+  {"t": 5}
 ]
 ```
 
