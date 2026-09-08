@@ -1,7 +1,11 @@
 package workflows
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/temporalio/benchmark-workers/activities"
 
 	"go.temporal.io/sdk/workflow"
 )
@@ -17,15 +21,16 @@ type ReceiveSignalWorkflowInput struct {
 	Name  string
 }
 
-// DSL step: an activity, a child workflow (which is always this workflow),
-// and/or a user timer.
+// DSL step: an activity, a local activity, a child workflow (which is always
+// this workflow), and/or a user timer.
 type DSLStep struct {
-	Activity     string      `json:"a,omitempty"`
-	Input        interface{} `json:"i,omitempty"`
-	Child        []DSLStep   `json:"c,omitempty"`
-	Repeat       int         `json:"r,omitempty"`
-	PaddingSize  int         `json:"p,omitempty"` // Size in bytes of padding to add to activity inputs
-	SleepSeconds int         `json:"t,omitempty"` // Seconds to sleep using workflow.Sleep
+	Activity      string      `json:"a,omitempty"`
+	LocalActivity string      `json:"la,omitempty"`
+	Input         interface{} `json:"i,omitempty"`
+	Child         []DSLStep   `json:"c,omitempty"`
+	Repeat        int         `json:"r,omitempty"`
+	PaddingSize   int         `json:"p,omitempty"` // Size in bytes of padding to add to activity inputs
+	SleepSeconds  int         `json:"t,omitempty"` // Seconds to sleep using workflow.Sleep
 }
 
 // injectPadding adds padding data to an activity input by adding a Padding field
@@ -43,6 +48,38 @@ func injectPadding(input interface{}, paddingSize int) {
 	// If input is a map, add the Padding field directly
 	if inputMap, ok := input.(map[string]interface{}); ok {
 		inputMap["Padding"] = padding
+	}
+}
+
+// localActivityInput converts the DSL's JSON-decoded input to the concrete
+// types used by the activities registered by this worker. Unlike regular
+// activities, local activity arguments do not pass through the data converter.
+func localActivityInput(activityName string, input interface{}) (interface{}, error) {
+	var target interface{}
+	switch activityName {
+	case "Echo":
+		target = &activities.EchoActivityInput{}
+	case "Sleep":
+		target = &activities.SleepActivityInput{}
+	default:
+		return input, nil
+	}
+
+	data, err := json.Marshal(input)
+	if err != nil {
+		return nil, fmt.Errorf("encode %s local activity input: %w", activityName, err)
+	}
+	if err := json.Unmarshal(data, target); err != nil {
+		return nil, fmt.Errorf("decode %s local activity input: %w", activityName, err)
+	}
+
+	switch value := target.(type) {
+	case *activities.EchoActivityInput:
+		return *value, nil
+	case *activities.SleepActivityInput:
+		return *value, nil
+	default:
+		panic("unreachable local activity input type")
 	}
 }
 
@@ -80,6 +117,10 @@ func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 		StartToCloseTimeout: 1 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
+	lao := workflow.LocalActivityOptions{
+		StartToCloseTimeout: 1 * time.Minute,
+	}
+	ctx = workflow.WithLocalActivityOptions(ctx, lao)
 
 	for _, step := range steps {
 		repeat := step.Repeat
@@ -96,6 +137,17 @@ func DSLWorkflow(ctx workflow.Context, steps []DSLStep) error {
 				// Inject padding into the activity input if specified
 				injectPadding(step.Input, step.PaddingSize)
 				if err := workflow.ExecuteActivity(ctx, step.Activity, step.Input).Get(ctx, nil); err != nil {
+					return err
+				}
+			}
+			if step.LocalActivity != "" {
+				// Inject padding into the local activity input if specified
+				injectPadding(step.Input, step.PaddingSize)
+				input, err := localActivityInput(step.LocalActivity, step.Input)
+				if err != nil {
+					return err
+				}
+				if err := workflow.ExecuteLocalActivity(ctx, step.LocalActivity, input).Get(ctx, nil); err != nil {
 					return err
 				}
 			}

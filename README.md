@@ -160,10 +160,11 @@ This workflow waits to receive a signal. It can be used with the runner's signal
 
 `DSLWorkflow([]DSLStep)`
 
-This workflow takes an array of steps, each of which can execute an activity or a child workflow (which is another invocation of DSLWorkflow). This allows you to compose complex benchmarking scenarios, including nested and repeated activities and child workflows.
+This workflow takes an array of steps, each of which can execute an activity, a local activity, or a child workflow (which is another invocation of DSLWorkflow). This allows you to compose complex benchmarking scenarios, including nested and repeated activities and child workflows.
 
 Each step can have the following fields:
 - `a`: (string) Activity name to execute
+- `la`: (string) Activity name to execute as a local activity; uses the same `i`, `r`, and `p` fields as `a`
 - `i`: (object, optional) Input to pass to the activity
 - `c`: (array of steps, optional) Child steps to execute as a child workflow
 - `r`: (int, optional) Number of times to repeat this step (default 1)
@@ -180,6 +181,14 @@ This example runs the `Echo` activity 3 times, then starts a child workflow whic
   {"c": [
     {"a": "Echo", "i": {"Message": "test"}, "r": 3}
   ]}
+]
+```
+
+To run the same activity locally, replace `a` with `la`:
+
+```
+[
+  {"la": "Echo", "i": {"Message": "test"}, "r": 3}
 ]
 ```
 

@@ -9,6 +9,7 @@ import (
 
 type SleepActivityInput struct {
 	SleepTimeInSeconds int
+	Padding            []byte
 }
 
 func SleepActivity(ctx context.Context, input SleepActivityInput) error {
@@ -46,6 +47,7 @@ func SleepActivity(ctx context.Context, input SleepActivityInput) error {
 
 type EchoActivityInput struct {
 	Message string
+	Padding []byte
 }
 
 func EchoActivity(ctx context.Context, input EchoActivityInput) (string, error) {

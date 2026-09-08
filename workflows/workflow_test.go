@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -36,6 +37,41 @@ func TestDSLWorkflow(t *testing.T) {
 	require.True(t, env.IsWorkflowCompleted())
 	require.NoError(t, env.GetWorkflowError())
 	require.Equal(t, 6, echoCount, "Echo activity should be called 6 times")
+}
+
+func TestDSLWorkflowWithLocalActivity(t *testing.T) {
+	ts := &testsuite.WorkflowTestSuite{}
+	env := ts.NewTestWorkflowEnvironment()
+
+	env.RegisterActivityWithOptions(activities.EchoActivity, activity.RegisterOptions{Name: "Echo"})
+	var echoCount int
+	var receivedInputs []activities.EchoActivityInput
+	env.OnActivity("Echo", mock.Anything, mock.Anything).Return(func(ctx context.Context, input activities.EchoActivityInput) (string, error) {
+		echoCount++
+		receivedInputs = append(receivedInputs, input)
+		return input.Message, nil
+	})
+
+	var localActivityCount int
+	env.SetOnLocalActivityStartedListener(func(info *activity.Info, ctx context.Context, args []interface{}) {
+		localActivityCount++
+	})
+
+	var steps []DSLStep
+	require.NoError(t, json.Unmarshal([]byte(`[
+		{"la":"Echo","i":{"Message":"test"},"r":3,"p":16}
+	]`), &steps))
+
+	env.ExecuteWorkflow(DSLWorkflow, steps)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	require.Equal(t, 3, echoCount, "Echo activity should be called 3 times")
+	require.Equal(t, 3, localActivityCount, "Echo activity should run as a local activity")
+	for _, input := range receivedInputs {
+		require.Equal(t, "test", input.Message)
+		require.Len(t, input.Padding, 16)
+	}
 }
 
 func TestDSLWorkflowWithTimerSleep(t *testing.T) {
