@@ -82,6 +82,15 @@ spec:
           value: "true"
         {{- end }}
         {{- end }}
+        {{- with .Values.temporal.apiKey }}
+        {{- if .existingSecret }}
+        - name: TEMPORAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .existingSecret }}
+              key: {{ .key | default "apiKey" }}
+        {{- end }}
+        {{- end }}
         {{- if .Values.additionalEnv }}
         {{- toYaml .Values.additionalEnv | nindent 8 }}
         {{- end }}

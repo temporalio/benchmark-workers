@@ -147,6 +147,15 @@ func main() {
 		clientOptions.ConnectionOptions.TLS = &tlsConfig
 	}
 
+	// A bearer token, so it needs TLS even with no certificate given; an empty
+	// tls.Config is the system trust store.
+	if apiKey := os.Getenv("TEMPORAL_API_KEY"); apiKey != "" {
+		if clientOptions.ConnectionOptions.TLS == nil {
+			clientOptions.ConnectionOptions.TLS = &tls.Config{}
+		}
+		clientOptions.Credentials = client.NewAPIKeyStaticCredentials(apiKey)
+	}
+
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
 		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
 			ListenAddress: os.Getenv("PROMETHEUS_ENDPOINT"),

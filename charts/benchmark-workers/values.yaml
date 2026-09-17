@@ -20,6 +20,17 @@ temporal:
   # workflowTaskPollers: "16"
   # activityTaskPollers: "8"
 
+  # The alternative to the mTLS block below: one secret for the whole account
+  # rather than a certificate per namespace. Not created by the chart.
+  #
+  # Needs appVersion 1.11.0 or later. Earlier images read TEMPORAL_TLS_* only
+  # and ignore TEMPORAL_API_KEY, so the pod would carry the key and still
+  # connect unauthenticated.
+  apiKey:
+    existingSecret: ""
+    # Key within that Secret holding the token.
+    key: "apiKey"
+
   tls:
     enabled: false
     # Provide these values or use an existing Secret
