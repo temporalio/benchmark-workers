@@ -67,6 +67,15 @@ spec:
           value: "true"
         {{- end }}
         {{- end }}
+        {{- with .Values.temporal.apiKey }}
+        {{- if .existingSecret }}
+        - name: TEMPORAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .existingSecret }}
+              key: {{ .key | default "apiKey" }}
+        {{- end }}
+        {{- end }}
         command: 
         - "runner"
         - "-w"
