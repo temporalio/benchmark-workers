@@ -27,6 +27,7 @@ var nMaxWorkflowPollers = flag.Int("wp", -1, "max concurrent workflow task polle
 var nMaxActivityPollers = flag.Int("ap", -1, "max concurrent activity task pollers for autoscaling (-1 = use default)")
 var nWorkflowPollers = flag.Int("wpf", -1, "fixed number of workflow task pollers, disables autoscaling (-1 = use default)")
 var nActivityPollers = flag.Int("apf", -1, "fixed number of activity task pollers, disables autoscaling (-1 = use default)")
+var nStickyCacheSize = flag.Int("sc", -1, "sticky workflow cache size (-1 = SDK default of 10000)")
 
 // Track which flags were explicitly set
 var flagsSet = make(map[string]bool)
@@ -85,6 +86,7 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_MAX_ACTIVITY_TASK_POLLERS\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_WORKFLOW_TASK_POLLERS\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_ACTIVITY_TASK_POLLERS\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  TEMPORAL_STICKY_CACHE_SIZE\n")
 	}
 
 	flag.Parse()
@@ -105,6 +107,7 @@ func main() {
 	maxActivityPollers := getIntValue("ap", "TEMPORAL_MAX_ACTIVITY_TASK_POLLERS", *nMaxActivityPollers, -1)
 	workflowPollers := getIntValue("wpf", "TEMPORAL_WORKFLOW_TASK_POLLERS", *nWorkflowPollers, -1)
 	activityPollers := getIntValue("apf", "TEMPORAL_ACTIVITY_TASK_POLLERS", *nActivityPollers, -1)
+	stickyCacheSize := getIntValue("sc", "TEMPORAL_STICKY_CACHE_SIZE", *nStickyCacheSize, -1)
 
 	log.Printf("Creating worker for namespace: %s", namespace)
 
@@ -167,6 +170,10 @@ func main() {
 		log.Fatalf("Unable to create client: %v", err)
 	}
 	defer c.Close()
+
+	if stickyCacheSize >= 0 {
+		worker.SetStickyWorkflowCacheSize(stickyCacheSize)
+	}
 
 	workerOptions := worker.Options{}
 

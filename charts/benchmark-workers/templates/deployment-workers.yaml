@@ -55,6 +55,10 @@ spec:
         - name: TEMPORAL_ACTIVITY_TASK_POLLERS
           value: {{ . | quote }}
         {{- end }}
+        {{ with .Values.temporal.stickyCacheSize }}
+        - name: TEMPORAL_STICKY_CACHE_SIZE
+          value: {{ . | quote }}
+        {{- end }}
         {{- if .Values.metrics.enabled }}
         - name: PROMETHEUS_ENDPOINT
           value: {{ .Values.metrics.prometheusEndpoint | quote }}
