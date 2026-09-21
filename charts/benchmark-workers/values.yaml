@@ -20,6 +20,10 @@ temporal:
   # workflowTaskPollers: "16"
   # activityTaskPollers: "8"
 
+  # Sticky workflow cache size shared across all workers in the process.
+  # Defaults to the SDK default of 10000 when unset.
+  # stickyCacheSize: "30000"
+
   # The alternative to the mTLS block below: one secret for the whole account
   # rather than a certificate per namespace. Not created by the chart.
   #
