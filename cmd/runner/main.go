@@ -18,18 +18,19 @@ import (
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"go.uber.org/automaxprocs/maxprocs"
 
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 )
 
 var (
-	nWorkflows  = flag.Int("c", 10, "concurrent workflows")
-	sWorkflow = flag.String("t", "", "workflow type")
-	sSignalType = flag.String("s", "", "signal type")
-	bWait = flag.Bool("w", true, "wait for workflows to complete")
-	sNamespace = flag.String("n", "default", "namespace")
-	sTaskQueue = flag.String("tq", "benchmark", "task queue")
-	nMaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
-	nFactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
+	nWorkflows      = flag.Int("c", 10, "concurrent workflows")
+	sWorkflow       = flag.String("t", "", "workflow type")
+	sSignalType     = flag.String("s", "", "signal type")
+	bWait           = flag.Bool("w", true, "wait for workflows to complete")
+	sNamespace      = flag.String("n", "default", "namespace")
+	sTaskQueue      = flag.String("tq", "benchmark", "task queue")
+	nMaxInterval    = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
+	nFactor         = flag.Int("backoff-factor", 2, "factor for exponential backoff")
 	bDisableBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
 )
 
@@ -71,6 +72,38 @@ func getBoolValue(flagName, envName string, flagValue, defaultValue bool) bool {
 	return defaultValue
 }
 
+const startAttempts = 5
+
+// backoff retries a failed workflow start, holding the worker slot so that
+// offered concurrency stays constant while it retries.
+type backoff struct {
+	disabled    bool
+	interval    time.Duration
+	factor      int
+	maxInterval time.Duration
+}
+
+// start calls f until it succeeds or the attempts are used up.
+func (b backoff) start(f func() (client.WorkflowRun, error)) (client.WorkflowRun, error) {
+	interval := b.interval
+
+	for attempt := 1; ; attempt++ {
+		wf, err := f()
+		if err == nil || b.disabled || attempt >= startAttempts {
+			return wf, err
+		}
+
+		fmt.Fprintf(os.Stderr, "Unable to start workflow (%s), retrying in %s: %v\n",
+			serviceerror.ToStatus(err).Code(), interval, err)
+
+		time.Sleep(interval)
+
+		if interval = interval * time.Duration(b.factor); interval > b.maxInterval {
+			interval = b.maxInterval
+		}
+	}
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] [workflow input] ...\n", os.Args[0])
@@ -105,6 +138,13 @@ func main() {
 	disableBackOff := getBoolValue("disable-backoff", "TEMPORAL_DISABLE_ERROR_BACKOFF", *bDisableBackoff, false)
 	maxInterval := getIntValue("max-interval", "TEMPORAL_BACKOFF_MAX_INTERVAL", *nMaxInterval, 60)
 	factor := getIntValue("backoff-factor", "TEMPORAL_BACKOFF_FACTOR", *nFactor, 2)
+
+	starts := backoff{
+		disabled:    disableBackOff,
+		interval:    time.Second,
+		factor:      factor,
+		maxInterval: time.Duration(maxInterval) * time.Second,
+	}
 
 	log.Printf("Using namespace: %s", namespace)
 
@@ -214,59 +254,24 @@ func main() {
 		}
 	}
 
+	// Submit blocks while every worker is busy, which paces this loop.
 	go (func() {
-		currentInterval := 1
-		errChan := make(chan error, concurrentWorkflows)
-		
 		for {
 			pool.Submit(func() {
-				wf, err := starter()
+				wf, err := starts.start(starter)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Unable to start workflow: %v\n", err)
-					errChan <- err
+					fmt.Fprintf(os.Stderr, "Giving up starting workflow (%s): %v\n",
+						serviceerror.ToStatus(err).Code(), err)
 					return
 				}
-				
+
 				if waitForCompletion {
-					err = wf.Get(context.Background(), nil)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "Workflow failed: %v\n", err)
-						errChan <- err
-						return
+					if err := wf.Get(context.Background(), nil); err != nil {
+						fmt.Fprintf(os.Stderr, "Workflow failed (%s): %v\n",
+							serviceerror.ToStatus(err).Code(), err)
 					}
 				}
-				
-				errChan <- nil
 			})
-			
-			var lastErr error
-			updated := false
-			
-			drainLoop:
-			for {
-				select {
-				case err := <-errChan:
-					lastErr = err
-					updated = true
-				default:
-					break drainLoop
-				}
-			}
-			
-			if disableBackOff || !updated {
-				continue
-			}
-			
-			if lastErr != nil {
-				fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
-				time.Sleep(time.Duration(currentInterval) * time.Second)
-				nInterval := currentInterval * factor
-				if nInterval < maxInterval && maxInterval != 0 {
-					currentInterval *= factor
-				}
-			} else if lastErr == nil {
-				currentInterval = 1
-			}
 		}
 	})()
 
