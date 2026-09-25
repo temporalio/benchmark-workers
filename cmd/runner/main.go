@@ -22,14 +22,14 @@ import (
 )
 
 var (
-	nWorkflows  = flag.Int("c", 10, "concurrent workflows")
-	sWorkflow = flag.String("t", "", "workflow type")
-	sSignalType = flag.String("s", "", "signal type")
-	bWait = flag.Bool("w", true, "wait for workflows to complete")
-	sNamespace = flag.String("n", "default", "namespace")
-	sTaskQueue = flag.String("tq", "benchmark", "task queue")
-	nMaxInterval = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
-	nFactor = flag.Int("backoff-factor", 2, "factor for exponential backoff")
+	nWorkflows      = flag.Int("c", 10, "concurrent workflows")
+	sWorkflow       = flag.String("t", "", "workflow type")
+	sSignalType     = flag.String("s", "", "signal type")
+	bWait           = flag.Bool("w", true, "wait for workflows to complete")
+	sNamespace      = flag.String("n", "default", "namespace")
+	sTaskQueue      = flag.String("tq", "benchmark", "task queue")
+	nMaxInterval    = flag.Int("max-interval", 60, "maximum interval (in seconds) for exponential backoff")
+	nFactor         = flag.Int("backoff-factor", 2, "factor for exponential backoff")
 	bDisableBackoff = flag.Bool("disable-backoff", false, "disable exponential backoff on errors")
 )
 
@@ -156,11 +156,12 @@ func main() {
 		clientOptions.Credentials = client.NewAPIKeyStaticCredentials(apiKey)
 	}
 
+	invocations := newInvocationMetrics()
 	if os.Getenv("PROMETHEUS_ENDPOINT") != "" {
 		clientOptions.MetricsHandler = sdktally.NewMetricsHandler(newPrometheusScope(prometheus.Configuration{
 			ListenAddress: os.Getenv("PROMETHEUS_ENDPOINT"),
 			TimerType:     "histogram",
-		}))
+		}, invocations.registry))
 	}
 
 	c, err := client.Dial(clientOptions)
@@ -217,32 +218,31 @@ func main() {
 	go (func() {
 		currentInterval := 1
 		errChan := make(chan error, concurrentWorkflows)
-		
+
 		for {
 			pool.Submit(func() {
-				wf, err := starter()
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Unable to start workflow: %v\n", err)
-					errChan <- err
-					return
-				}
-				
-				if waitForCompletion {
-					err = wf.Get(context.Background(), nil)
+				err := invocations.run(waitForCompletion, func() error {
+					wf, err := starter()
 					if err != nil {
-						fmt.Fprintf(os.Stderr, "Workflow failed: %v\n", err)
-						errChan <- err
-						return
+						fmt.Fprintf(os.Stderr, "Unable to start workflow: %v\n", err)
+						return err
 					}
-				}
-				
-				errChan <- nil
+					if waitForCompletion {
+						err = wf.Get(context.Background(), nil)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Workflow failed: %v\n", err)
+						}
+						return err
+					}
+					return nil
+				})
+				errChan <- err
 			})
-			
+
 			var lastErr error
 			updated := false
-			
-			drainLoop:
+
+		drainLoop:
 			for {
 				select {
 				case err := <-errChan:
@@ -252,11 +252,11 @@ func main() {
 					break drainLoop
 				}
 			}
-			
+
 			if disableBackOff || !updated {
 				continue
 			}
-			
+
 			if lastErr != nil {
 				fmt.Fprintf(os.Stderr, "Waiting for %d seconds before retrying to start workflow...\n", currentInterval)
 				time.Sleep(time.Duration(currentInterval) * time.Second)

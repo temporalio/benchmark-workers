@@ -140,6 +140,23 @@ kubectl run benchmark-runner --image ghcr.io/temporalio/benchmark-workers:main \
     --command -- runner -t ExecuteActivity '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
 ```
 
+When `PROMETHEUS_ENDPOINT` is set, the runner serves its own `benchmark_`
+metrics alongside the Temporal SDK metrics on `/metrics`:
+
+| Metric | Meaning |
+| --- | --- |
+| `benchmark_runner_invocations_started_total` | Top-level workflow attempts, counted before the client submits them |
+| `benchmark_runner_invocations_completed_total` | Workflows the client waited for and observed complete successfully |
+| `benchmark_runner_invocations_failed_total` | Submission, signalling, or completion failures observed by the client |
+| `benchmark_runner_invocation_duration_seconds{outcome="completed"\|"failed"}` | Client-observed time from before submission through completion or failure |
+
+The histogram has fine-grained buckets from 5 ms through 60 s, then tail
+buckets up to 10 minutes. Use the `completed` outcome for latency percentiles;
+the `failed` outcome captures time to error. With `-w=false`, a successful
+submission increments only `started_total`, because the client has not
+observed completion. These are runner-side measurements; the SDK's own metrics
+remain available for diagnosing internal behavior.
+
 ## Workflows
 
 The worker provides the following workflows for you to use during benchmarking:
