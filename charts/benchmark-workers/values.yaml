@@ -68,6 +68,8 @@ metrics:
 workers:
   # Number of worker replicas
   replicaCount: 1
+  # Annotations to add to the Deployment metadata
+  annotations: {}
   # Resources configuration
   resources: {}
     # limits:
@@ -91,6 +93,8 @@ soakTest:
   enabled: true
   # Number of soak test replicas
   replicaCount: 1
+  # Annotations to add to the Deployment metadata
+  annotations: {}
   concurrentWorkflows: "10"
   workflowType: "ExecuteActivity"
   workflowArgs: '{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }'
