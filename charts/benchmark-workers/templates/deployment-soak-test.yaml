@@ -7,6 +7,10 @@ metadata:
     app: benchmark
     component: soak-test
     {{- include "benchmark-workers.labels" . | nindent 4 }}
+  {{- with .Values.soakTest.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   strategy:
     type: Recreate

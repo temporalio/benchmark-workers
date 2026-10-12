@@ -78,10 +78,12 @@ The following table lists the configurable parameters for the benchmark-workers 
 | `metrics.serviceMonitor.interval` | Scrape interval | `15s` |
 | `metrics.serviceMonitor.scrapeTimeout` | Scrape timeout | `10s` |
 | `workers.replicaCount` | Number of worker pods | `1` |
+| `workers.annotations` | Annotations to add to the workers Deployment metadata | `{}` |
 | `workers.resources` | Resource requests and limits for worker pods | `{}` |
 | `additionalEnv` | Additional environment variables for worker pods | `[]` |
 | `soakTest.enabled` | Enable soak test deployment | `true` |
 | `soakTest.replicaCount` | Number of soak test pods | `1` |
+| `soakTest.annotations` | Annotations to add to the soak test Deployment metadata | `{}` |
 | `soakTest.concurrentWorkflows` | Number of concurrent workflows | `10` |
 | `soakTest.workflowType` | Workflow type to execute | `ExecuteActivity` |
 | `soakTest.workflowArgs` | Arguments for the workflow | `{ "Count": 3, "Activity": "Echo", "Input": { "Message": "test" } }` |

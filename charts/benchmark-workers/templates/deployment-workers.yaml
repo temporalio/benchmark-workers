@@ -6,6 +6,10 @@ metadata:
     app: benchmark
     component: workers
     {{- include "benchmark-workers.labels" . | nindent 4 }}
+  {{- with .Values.workers.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   strategy:
     type: Recreate
